@@ -1,0 +1,55 @@
+
+
+# node_modules/
+# venv/
+# dist/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite3
+hireflow.db
+
+# Virtual Environments
+venv/
+venv313/
+.venv/
+
+# Next.js / Node
+node_modules/
+.next/
+package-lock.json
+
+# DVC
+.dvc/cache
+.dvc/tmp
+
+# Storage & Temp
+backend/storage/
+backend/tmp/
+
+# Migrations (optional - keep if you want migration history)
+# migrations/
+
+# Alembic
+alembic.ini
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vector DB (likely large files)
+vector_db/

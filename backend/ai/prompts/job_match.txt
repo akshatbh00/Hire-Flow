@@ -1,0 +1,3 @@
+Given this resume and job description, score the match from 0-100.
+Consider: skills overlap, experience level, role alignment, location.
+Return JSON: { "score": int, "reasons": [str], "missing": [str] }r

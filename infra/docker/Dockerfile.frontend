@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install deps
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci
+
+# Build
+COPY frontend/ .
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]

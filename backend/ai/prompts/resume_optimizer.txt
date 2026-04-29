@@ -1,0 +1,4 @@
+Rewrite the provided resume section to better target the job description.
+Rules: keep it truthful, use action verbs, quantify achievements,
+mirror JD keywords naturally, maintain approximate length.
+Return only the rewritten text.

@@ -1,0 +1,68 @@
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from database import get_db
+from api.pipeline.service import PipelineService
+from api.auth.routes import require_recruiter, get_current_user
+from models import PipelineStage
+
+router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
+svc = PipelineService()
+
+
+class MoveStageRequest(BaseModel):
+    application_id: str
+    to_stage:       PipelineStage
+    notes:          str | None = None
+
+
+@router.post("/move")
+def move_stage(
+    req: MoveStageRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_recruiter),
+):
+    try:
+        app = svc.move_stage(
+            req.application_id, req.to_stage,
+            str(current_user.id), req.notes, db
+        )
+        return {"stage": app.current_stage, "highest": app.highest_stage}
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.get("/job/{job_id}/kanban")
+def get_kanban(job_id: str, db: Session = Depends(get_db)):
+    return svc.get_pipeline_for_job(job_id, db)
+
+
+@router.get("/application/{app_id}/history")
+def get_history(app_id: str, db: Session = Depends(get_db)):
+    from models import StageHistory
+    history = db.query(StageHistory).filter(
+        StageHistory.application_id == app_id
+    ).order_by(StageHistory.created_at).all()
+    return [
+        {
+            "from":     h.from_stage,
+            "to":       h.to_stage,
+            "notes":    h.notes,
+            "moved_at": h.created_at.isoformat(),
+        }
+        for h in history
+    ]
+# adding round benchmark
+@router.get("/{resume_id}/round-benchmark")
+def round_benchmark(
+    resume_id: str,
+    job_title: str = Query(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Per-round benchmark — 
+    'To clear Round 1 add X, to get selected add Y'
+    """
+    from ai.benchmark.round_comparator import RoundComparator
+    return RoundComparator().compare(resume_id, job_title, db)

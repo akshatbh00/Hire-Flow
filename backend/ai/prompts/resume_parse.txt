@@ -1,0 +1,4 @@
+Extract structured data from the resume below.
+Return only valid JSON with fields: name, email, phone, location,
+total_experience_years, current_title, skills, education, experience, certifications.
+Do not add commentary. If a field is missing return null.

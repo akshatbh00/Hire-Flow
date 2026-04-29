@@ -1,0 +1,3 @@
+Compare the candidate profile against the selected pool.
+Identify skill gaps, experience gaps, and title misalignment.
+Be specific and actionable. Return JSON only.

@@ -1,0 +1,3 @@
+Rate this resume for ATS compatibility. Score each area and list the top issues.
+Focus on: keyword density, section completeness, formatting clarity, length.
+Return JSON only with fields: keyword_density (0-35), clarity_score (0-10), issues (list of strings).
