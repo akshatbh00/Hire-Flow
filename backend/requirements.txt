@@ -228,3 +228,4 @@ werkzeug==3.1.5
     # via sendgrid
 win32-setctime==1.2.0
     # via loguru
+psycopg2-binary==2.9.9
