@@ -1,6 +1,5 @@
 "use client";
-// frontend/app/(auth)/register/page.tsx  (recruiter flow)
-// This replaces the existing register page with company search + join/create flow
+// frontend/app/(auth)/register/page.tsx
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +8,13 @@ import { authApi } from "@/lib/api";
 
 const BASE = "http://localhost:8001/api/v1";
 
-type Step = "account" | "company-choice" | "join-request" | "create-company" | "pending";
+type Step =
+  | "role-picker"
+  | "jobseeker-account"
+  | "recruiter-account"
+  | "company-choice"
+  | "create-company"
+  | "pending";
 
 interface CompanyResult {
   id: string;
@@ -18,41 +23,56 @@ interface CompanyResult {
   website?: string;
 }
 
-export default function RecruiterRegisterPage() {
+export default function RegisterPage() {
   const router = useRouter();
 
-  const [step,      setStep]      = useState<Step>("account");
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState("");
+  const [step,        setStep]        = useState<Step>("role-picker");
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState("");
 
-  // Account fields
-  const [fullName,  setFullName]  = useState("");
-  const [email,     setEmail]     = useState("");
-  const [password,  setPassword]  = useState("");
-  const [token,     setToken]     = useState("");
+  // Shared account fields
+  const [fullName,    setFullName]    = useState("");
+  const [email,       setEmail]       = useState("");
+  const [password,    setPassword]    = useState("");
 
   // Company search
-  const [query,     setQuery]     = useState("");
-  const [results,   setResults]   = useState<CompanyResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selected,  setSelected]  = useState<CompanyResult | null>(null);
-  const [message,   setMessage]   = useState("");
+  const [query,       setQuery]       = useState("");
+  const [results,     setResults]     = useState<CompanyResult[]>([]);
+  const [searching,   setSearching]   = useState(false);
+  const [selected,    setSelected]    = useState<CompanyResult | null>(null);
+  const [message,     setMessage]     = useState("");
 
   // Create company
   const [companyName, setCompanyName] = useState("");
 
-  // ── Step 1: create account ──────────────────────────────────────────────
-  async function handleCreateAccount() {
-    if (!fullName.trim())      { setError("Name is required"); return; }
-    if (!email.trim())         { setError("Email is required"); return; }
-    if (password.length < 8)   { setError("Password must be at least 8 characters"); return; }
+  // ── Job Seeker signup ───────────────────────────────────────────────────
+  async function handleJobSeekerSignup() {
+    if (!fullName.trim())    { setError("Name is required"); return; }
+    if (!email.trim())       { setError("Email is required"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await authApi.register({ full_name: fullName, email, password, role: "jobseeker" });
+      localStorage.setItem("hf_token", res.access_token);
+      document.cookie = `hf_token=${res.access_token};path=/;max-age=${30*86400};SameSite=Lax`;
+      document.cookie = `hf_role=${res.role};path=/;max-age=${30*86400};SameSite=Lax`;
+      router.push("/dashboard");
+    } catch (e: any) {
+      setError(e.message ?? "Registration failed");
+    } finally { setLoading(false); }
+  }
+
+  // ── Recruiter account creation ──────────────────────────────────────────
+  async function handleRecruiterAccount() {
+    if (!fullName.trim())    { setError("Name is required"); return; }
+    if (!email.trim())       { setError("Email is required"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true); setError("");
     try {
       const res = await authApi.register({ full_name: fullName, email, password, role: "recruiter" });
       localStorage.setItem("hf_token", res.access_token);
       document.cookie = `hf_token=${res.access_token};path=/;max-age=${30*86400};SameSite=Lax`;
       document.cookie = `hf_role=${res.role};path=/;max-age=${30*86400};SameSite=Lax`;
-      setToken(res.access_token);
       setStep("company-choice");
     } catch (e: any) {
       setError(e.message ?? "Registration failed");
@@ -120,13 +140,15 @@ export default function RecruiterRegisterPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #EEF2FF 0%, #fff 50%, #F0FDF4 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans',-apple-system,sans-serif", padding: 20 }}>
-      <style>{`
+      <style suppressHydrationWarning>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         .inp{transition:border-color 0.15s,box-shadow 0.15s}
         .inp:focus{border-color:#4F46E5!important;box-shadow:0 0 0 3px rgba(79,70,229,0.1)!important;outline:none}
-        .company-row{transition:background 0.1s,border-color 0.1s;cursor:pointer}
-        .company-row:hover{background:#F8FAFC!important;border-color:#C7D7FE!important}
+        .role-card{transition:border-color 0.15s,background 0.15s,transform 0.12s;cursor:pointer}
+        .role-card:hover{transform:translateY(-2px)}
+        .company-row{transition:background 0.1s;cursor:pointer}
+        .company-row:hover{background:#F8FAFC!important}
         .btn-primary{transition:background 0.12s}
         .btn-primary:hover:not(:disabled){background:#4338CA!important}
       `}</style>
@@ -142,10 +164,49 @@ export default function RecruiterRegisterPage() {
           </Link>
         </div>
 
-        {/* ── STEP: Account ── */}
-        {step === "account" && (
+        {/* ── STEP: Role Picker ── */}
+        {step === "role-picker" && (
+          <>
+            <div style={{ marginBottom: 28, textAlign: "center" }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em" }}>Join HireFlow</h1>
+              <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 4 }}>
+                Already have an account? <Link href="/login" style={{ color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>Sign in</Link>
+              </p>
+            </div>
+
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#64748B", textAlign: "center", marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.07em" }}>
+              I am a...
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+              {/* Job Seeker card */}
+              <div className="role-card" onClick={() => { setError(""); setStep("jobseeker-account"); }} style={{
+                border: "2px solid #E2E8F0", borderRadius: 14, padding: "20px 16px",
+                textAlign: "center", background: "#fff",
+              }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>🎯</div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>Job Seeker</p>
+                <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>Find jobs, track applications, get AI-matched</p>
+              </div>
+
+              {/* Recruiter card */}
+              <div className="role-card" onClick={() => { setError(""); setStep("recruiter-account"); }} style={{
+                border: "2px solid #E2E8F0", borderRadius: 14, padding: "20px 16px",
+                textAlign: "center", background: "#fff",
+              }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>🏢</div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>Recruiter</p>
+                <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>Post jobs, manage pipeline, hire talent</p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP: Job Seeker Account ── */}
+        {step === "jobseeker-account" && (
           <>
             <div style={{ marginBottom: 24 }}>
+              <button onClick={() => { setError(""); setStep("role-picker"); }} style={backBtn}>← Back</button>
               <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em" }}>Create your account</h1>
               <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 4 }}>
                 Already have one? <Link href="/login" style={{ color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>Sign in</Link>
@@ -154,17 +215,40 @@ export default function RecruiterRegisterPage() {
 
             {error && <ErrBox msg={error} />}
 
-            <Field label="Full Name" value={fullName} onChange={setFullName} placeholder="e.g. Rahul Sharma" />
-            <Field label="Work Email" value={email} onChange={setEmail} type="email" placeholder="you@company.com" />
-            <Field label="Password" value={password} onChange={setPassword} type="password" placeholder="Min 8 characters" />
+            <Field label="Full Name"   value={fullName}  onChange={setFullName}  placeholder="e.g. Priya Sharma" />
+            <Field label="Email"       value={email}     onChange={setEmail}     type="email"    placeholder="you@email.com" />
+            <Field label="Password"    value={password}  onChange={setPassword}  type="password" placeholder="Min 8 characters" />
 
-            <button onClick={handleCreateAccount} disabled={loading} className="btn-primary" style={primaryBtn}>
+            <button onClick={handleJobSeekerSignup} disabled={loading} className="btn-primary" style={primaryBtn}>
+              {loading ? "Creating account…" : "Create Account →"}
+            </button>
+          </>
+        )}
+
+        {/* ── STEP: Recruiter Account ── */}
+        {step === "recruiter-account" && (
+          <>
+            <div style={{ marginBottom: 24 }}>
+              <button onClick={() => { setError(""); setStep("role-picker"); }} style={backBtn}>← Back</button>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em" }}>Create recruiter account</h1>
+              <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 4 }}>
+                Already have one? <Link href="/login" style={{ color: "#4F46E5", fontWeight: 500, textDecoration: "none" }}>Sign in</Link>
+              </p>
+            </div>
+
+            {error && <ErrBox msg={error} />}
+
+            <Field label="Full Name"   value={fullName}  onChange={setFullName}  placeholder="e.g. Rahul Sharma" />
+            <Field label="Work Email"  value={email}     onChange={setEmail}     type="email"    placeholder="you@company.com" />
+            <Field label="Password"    value={password}  onChange={setPassword}  type="password" placeholder="Min 8 characters" />
+
+            <button onClick={handleRecruiterAccount} disabled={loading} className="btn-primary" style={primaryBtn}>
               {loading ? "Creating account…" : "Continue →"}
             </button>
           </>
         )}
 
-        {/* ── STEP: Company choice ── */}
+        {/* ── STEP: Company Choice ── */}
         {step === "company-choice" && (
           <>
             <div style={{ marginBottom: 24 }}>
@@ -174,29 +258,17 @@ export default function RecruiterRegisterPage() {
 
             {error && <ErrBox msg={error} />}
 
-            {/* Search */}
             <div style={{ position: "relative", marginBottom: 16 }}>
-              <input
-                className="inp"
-                value={query}
-                onChange={e => handleSearch(e.target.value)}
-                placeholder="Search company name..."
-                style={{ ...inputStyle, paddingRight: searching ? 40 : 14 }}
-              />
-              {searching && (
-                <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94A3B8" }}>
-                  searching…
-                </div>
-              )}
+              <input className="inp" value={query} onChange={e => handleSearch(e.target.value)}
+                placeholder="Search company name..." style={{ ...inputStyle, paddingRight: searching ? 90 : 14 }} />
+              {searching && <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94A3B8" }}>searching…</span>}
             </div>
 
-            {/* Results */}
             {results.length > 0 && !selected && (
               <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
                 {results.map((c, i) => (
                   <div key={c.id} className="company-row" onClick={() => { setSelected(c); setResults([]); }} style={{
-                    padding: "12px 16px", borderBottom: i < results.length - 1 ? "1px solid #F1F5F9" : "none",
-                    background: "#fff", border: "1px solid transparent",
+                    padding: "12px 16px", borderBottom: i < results.length - 1 ? "1px solid #F1F5F9" : "none", background: "#fff",
                   }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.name}</p>
                     {c.website && <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{c.website}</p>}
@@ -205,7 +277,6 @@ export default function RecruiterRegisterPage() {
               </div>
             )}
 
-            {/* Selected company */}
             {selected && (
               <div style={{ border: "1.5px solid #C7D7FE", borderRadius: 12, padding: "12px 16px", marginBottom: 16, background: "#EEF2FF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
@@ -216,20 +287,14 @@ export default function RecruiterRegisterPage() {
               </div>
             )}
 
-            {/* Message */}
             {selected && (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 500, color: "#64748B", display: "block", marginBottom: 6 }}>
                   Message to admin <span style={{ color: "#94A3B8" }}>(optional)</span>
                 </label>
-                <textarea
-                  className="inp"
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  placeholder="Hi, I'm a recruiter at this company and would like to join..."
-                  rows={3}
-                  style={{ ...inputStyle, resize: "none", lineHeight: 1.6 }}
-                />
+                <textarea className="inp" value={message} onChange={e => setMessage(e.target.value)}
+                  placeholder="Hi, I'm a recruiter at this company..." rows={3}
+                  style={{ ...inputStyle, resize: "none", lineHeight: 1.6 }} />
               </div>
             )}
 
@@ -240,9 +305,7 @@ export default function RecruiterRegisterPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {query.trim().length >= 2 && results.length === 0 && !searching && (
-                  <p style={{ fontSize: 12, color: "#94A3B8", textAlign: "center" }}>
-                    No company found for "{query}"
-                  </p>
+                  <p style={{ fontSize: 12, color: "#94A3B8", textAlign: "center" }}>No company found for "{query}"</p>
                 )}
                 <button onClick={() => setStep("create-company")} style={{ ...primaryBtn, background: "#F8FAFC", color: "#4F46E5", border: "1.5px solid #C7D7FE" }}>
                   + Create New Company
@@ -252,13 +315,11 @@ export default function RecruiterRegisterPage() {
           </>
         )}
 
-        {/* ── STEP: Create company ── */}
+        {/* ── STEP: Create Company ── */}
         {step === "create-company" && (
           <>
             <div style={{ marginBottom: 24 }}>
-              <button onClick={() => setStep("company-choice")} style={{ background: "none", border: "none", fontSize: 13, color: "#4F46E5", cursor: "pointer", fontFamily: "inherit", marginBottom: 12, padding: 0 }}>
-                ← Back
-              </button>
+              <button onClick={() => { setError(""); setStep("company-choice"); }} style={backBtn}>← Back</button>
               <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em" }}>Create your company</h1>
               <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 4 }}>You'll be the Company Admin</p>
             </div>
@@ -281,15 +342,12 @@ export default function RecruiterRegisterPage() {
         {step === "pending" && (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em", marginBottom: 8 }}>
-              Request Sent!
-            </h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em", marginBottom: 8 }}>Request Sent!</h1>
             <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6, marginBottom: 20 }}>
-              Your request to join <strong>{selected?.name}</strong> has been sent to the company admin.
-              You'll be notified once they approve or reject your request.
+              Your request to join <strong>{selected?.name}</strong> has been sent to the company admin. You'll be notified once they review it.
             </p>
             <div style={{ padding: "14px 16px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, marginBottom: 24, fontSize: 13, color: "#92400E", textAlign: "left" }}>
-              <strong>While you wait:</strong> You can still browse job listings and set up your profile.
+              <strong>While you wait:</strong> You can browse job listings and set up your profile.
             </div>
             <Link href="/jobs" style={{ display: "block", padding: "11px", background: "#4F46E5", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: "none", marginBottom: 10 }}>
               Browse Jobs →
@@ -299,18 +357,12 @@ export default function RecruiterRegisterPage() {
             </Link>
           </div>
         )}
-
-        {step !== "pending" && step !== "account" && (
-          <p style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", marginTop: 16 }}>
-            Already have access? <Link href="/login" style={{ color: "#4F46E5", textDecoration: "none" }}>Sign in</Link>
-          </p>
-        )}
       </div>
     </div>
   );
 }
 
-/* ─── small helpers ───────────────────────────────────── */
+/* ─── helpers ─────────────────────────────────────────── */
 function Field({ label, value, onChange, type = "text", placeholder, required }: {
   label: string; value: string; onChange: (v: string) => void;
   type?: string; placeholder?: string; required?: boolean;
@@ -349,4 +401,11 @@ const primaryBtn: React.CSSProperties = {
   fontSize: 14, fontWeight: 700,
   cursor: "pointer", fontFamily: "inherit",
   marginTop: 4,
+};
+
+const backBtn: React.CSSProperties = {
+  background: "none", border: "none",
+  fontSize: 13, color: "#4F46E5",
+  cursor: "pointer", fontFamily: "inherit",
+  marginBottom: 12, padding: 0, display: "block",
 };

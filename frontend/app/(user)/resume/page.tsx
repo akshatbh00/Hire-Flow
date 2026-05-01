@@ -131,11 +131,11 @@ export default function ResumePage() {
                   </div>
                 </div>
 
-                {parsed?.skills?.length > 0 && (
+                {(parsed?.skills?.length ?? 0) > 0 && (
                   <div>
                     <p style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Skills</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {parsed.skills.slice(0, 20).map((s: string) => (
+                      {parsed?.skills?.slice(0, 20).map((s: string) => (
                         <span key={s} style={{ fontSize: 12, padding: "3px 10px", borderRadius: 8, background: "#eff6ff", color: "#2563eb", border: "1px solid #dbeafe" }}>
                           {s}
                         </span>

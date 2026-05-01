@@ -52,7 +52,7 @@ export default function KarenWidget() {
       const res = await karenApi.chat(msg);
       setMessages((prev) => [
         ...prev,
-        { role: "karen", text: res.reply ?? res.message ?? "Sorry, I didn't get that.", ts: new Date() },
+        { role: "karen", text: res?.reply ?? (res as any)?.message ?? "Sorry, I didn't get that.", ts: new Date() },
       ]);
     } catch {
       setMessages((prev) => [

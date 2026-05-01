@@ -47,7 +47,7 @@ export const useUserStore = create<UserState>()(
             set({ token: res.access_token });
             await get().fetchMe();
           } else {
-            throw new Error(res.detail ?? "Login failed");
+            throw new Error((res as any)?.detail ?? "Login failed");
           }
         } catch (e: any) {
           set({ error: e.message });
