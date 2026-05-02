@@ -94,6 +94,9 @@ from api.hrms.routes import router as hrms_router
 app.include_router(hrms_router)
 
 
-@app.get("/health")
+# @app.get("/health")
+# def health():
+#     return {"status": "ok"}
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok"}
