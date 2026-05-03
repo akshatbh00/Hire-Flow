@@ -1,3 +1,5 @@
+// frontend/middleware.ts
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -21,22 +23,31 @@ export function middleware(request: NextRequest) {
 
   // Logged in → trying to access login/register → redirect to correct dashboard
   if (token && (pathname === "/login" || pathname === "/register")) {
-    const dest = role === "company_admin" ? "/company/dashboard" : role === "recruiter" ? "/recruiter-dashboard" : "/dashboard";
+    let dest = "/dashboard";
+    if (role === "recruiter")              dest = "/recruiter-dashboard";
+    else if (role === "admin")             dest = "/admin";
+    else if (role === "company_admin")     dest = "/admin";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 
-  // Job seekers trying to access recruiter routes
-  // Company admins trying to access recruiter dashboard → redirect to company dashboard
-  if (token && role === "company_admin" && pathname.startsWith("/recruiter-dashboard")) {
-    return NextResponse.redirect(new URL("/company/dashboard", request.url));
+  // Block jobseekers from recruiter routes
+  if (token && role === "jobseeker" && pathname.startsWith("/recruiter-dashboard")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Recruiters trying to access job seeker-only routes
-  if (token && role === "recruiter" && (
+  // Block recruiters/admins from jobseeker-only routes
+  if (token && (role === "recruiter" || role === "admin") && (
     pathname.startsWith("/applications") ||
     pathname.startsWith("/resume")
   )) {
-    return NextResponse.redirect(new URL("/recruiter-dashboard", request.url));
+    const dest = role === "admin" ? "/admin" : "/recruiter-dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  // Block non-admins from /admin routes
+  if (token && pathname.startsWith("/admin") && role !== "admin") {
+    const dest = role === "recruiter" ? "/recruiter-dashboard" : "/dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   return NextResponse.next();

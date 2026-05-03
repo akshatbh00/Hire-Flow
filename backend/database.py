@@ -5,12 +5,17 @@ from config import settings
 
 IS_SQLITE = settings.DATABASE_URL.startswith("sqlite")
 
+
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False} if IS_SQLITE else {},
-    **({} if IS_SQLITE else {"pool_size": 10, "max_overflow": 20}),
+    **({} if IS_SQLITE else {
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }),
 )
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
