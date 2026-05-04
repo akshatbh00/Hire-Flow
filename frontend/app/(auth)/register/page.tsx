@@ -4,8 +4,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authApi } from "@/lib/api";
-
+#import { authApi } from "@/lib/api";
+// authApi removed — using useUserStore.register directly
 //const BASE = "http://localhost:8001/api/v1";
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001/api/v1";
 type Step =
@@ -46,17 +46,15 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState("");
 
   // ── Job Seeker signup ───────────────────────────────────────────────────
-  async function handleJobSeekerSignup() {
+  async function handleRecruiterAccount() {
     if (!fullName.trim())    { setError("Name is required"); return; }
     if (!email.trim())       { setError("Email is required"); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true); setError("");
     try {
-      const res = await authApi.register({ full_name: fullName, email, password, role: "jobseeker" });
-      localStorage.setItem("hf_token", res.access_token);
-      document.cookie = `hf_token=${res.access_token};path=/;max-age=${30*86400};SameSite=Lax`;
-      document.cookie = `hf_role=${res.role};path=/;max-age=${30*86400};SameSite=Lax`;
-      router.push("/dashboard");
+      const { useUserStore } = await import("@/store/user.store");
+      await useUserStore.getState().register(email, password, fullName, "recruiter");
+      setStep("company-choice");
     } catch (e: any) {
       setError(e.message ?? "Registration failed");
     } finally { setLoading(false); }
