@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authApi } from "@/lib/api";
 
-const BASE = "http://localhost:8001/api/v1";
-
+//const BASE = "http://localhost:8001/api/v1";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001/api/v1";
 type Step =
   | "role-picker"
   | "jobseeker-account"
