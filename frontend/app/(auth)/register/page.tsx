@@ -4,10 +4,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-#import { authApi } from "@/lib/api";
-// authApi removed — using useUserStore.register directly
-//const BASE = "http://localhost:8001/api/v1";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001/api/v1";
+
 type Step =
   | "role-picker"
   | "jobseeker-account"
@@ -46,15 +45,15 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState("");
 
   // ── Job Seeker signup ───────────────────────────────────────────────────
-  async function handleRecruiterAccount() {
+  async function handleJobSeekerSignup() {
     if (!fullName.trim())    { setError("Name is required"); return; }
     if (!email.trim())       { setError("Email is required"); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true); setError("");
     try {
       const { useUserStore } = await import("@/store/user.store");
-      await useUserStore.getState().register(email, password, fullName, "recruiter");
-      setStep("company-choice");
+      await useUserStore.getState().register(email, password, fullName, "jobseeker");
+      router.push("/dashboard");
     } catch (e: any) {
       setError(e.message ?? "Registration failed");
     } finally { setLoading(false); }
@@ -67,10 +66,8 @@ export default function RegisterPage() {
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setLoading(true); setError("");
     try {
-      const res = await authApi.register({ full_name: fullName, email, password, role: "recruiter" });
-      localStorage.setItem("hf_token", res.access_token);
-      document.cookie = `hf_token=${res.access_token};path=/;max-age=${30*86400};SameSite=Lax`;
-      document.cookie = `hf_role=${res.role};path=/;max-age=${30*86400};SameSite=Lax`;
+      const { useUserStore } = await import("@/store/user.store");
+      await useUserStore.getState().register(email, password, fullName, "recruiter");
       setStep("company-choice");
     } catch (e: any) {
       setError(e.message ?? "Registration failed");
@@ -177,7 +174,6 @@ export default function RegisterPage() {
             </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
-              {/* Job Seeker card */}
               <div className="role-card" onClick={() => { setError(""); setStep("jobseeker-account"); }} style={{
                 border: "2px solid #E2E8F0", borderRadius: 14, padding: "20px 16px",
                 textAlign: "center", background: "#fff",
@@ -187,7 +183,6 @@ export default function RegisterPage() {
                 <p style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>Find jobs, track applications, get AI-matched</p>
               </div>
 
-              {/* Recruiter card */}
               <div className="role-card" onClick={() => { setError(""); setStep("recruiter-account"); }} style={{
                 border: "2px solid #E2E8F0", borderRadius: 14, padding: "20px 16px",
                 textAlign: "center", background: "#fff",
