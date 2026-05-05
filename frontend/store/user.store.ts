@@ -86,8 +86,7 @@ export const useUserStore = create<UserState>()(
           const user = await authApi.me();
           set({ user });
         } catch {
-          set({ user: null, token: null });
-          clearSession();
+          // don't clear token on fetchMe failure — backend may be cold starting
         }
       },
 
