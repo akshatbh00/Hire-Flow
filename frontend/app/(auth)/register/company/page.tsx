@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(auth)/register/company/page.tsx
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
