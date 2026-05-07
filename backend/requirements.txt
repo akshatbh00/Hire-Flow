@@ -230,3 +230,4 @@ win32-setctime==1.2.0
     # via loguru
 psycopg2-binary==2.9.9
 PyJWT==2.8.0
+groq==0.28.0
