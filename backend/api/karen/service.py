@@ -2,9 +2,12 @@
 api/karen/service.py — KAREN AI Agent
 Brutally honest career coach for job seekers.
 Sharp talent analyst for recruiters.
+
+Converted from OpenAI → Groq (llama-3.3-70b-versatile)
 """
+import re
 import json
-from openai import OpenAI
+from groq import Groq
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -14,10 +17,11 @@ from models import (
     Job, UserRole, PipelineStage
 )
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = Groq(api_key=settings.GROQ_API_KEY)
 
+GROQ_MODEL      = "llama-3.3-70b-versatile"
 MAX_MESSAGES    = 10
-SUMMARY_TRIGGER = 15   # summarize when messages exceed this
+SUMMARY_TRIGGER = 15
 
 
 # ── Personality prompts ────────────────────────────────────────────────────
@@ -76,15 +80,15 @@ def _build_jobseeker_context(user: User, db: Session) -> str:
     parsed = (resume.parsed_data or {}) if resume else {}
 
     context = {
-        "name":          user.full_name,
-        "email":         user.email,
-        "tier":          user.tier,
-        "job_pref":      user.job_pref,
-        "ats_score":     resume.ats_score if resume else None,
-        "skills":        parsed.get("skills", [])[:15],
+        "name":           user.full_name,
+        "email":          user.email,
+        "tier":           user.tier,
+        "job_pref":       user.job_pref,
+        "ats_score":      resume.ats_score if resume else None,
+        "skills":         parsed.get("skills", [])[:15],
         "experience_yrs": parsed.get("total_experience_years", 0),
-        "current_title": parsed.get("current_title"),
-        "applications":  [
+        "current_title":  parsed.get("current_title"),
+        "applications": [
             {
                 "job_title":     a.job.title if a.job else "Unknown",
                 "company":       a.job.company.name if a.job and a.job.company else "Unknown",
@@ -126,10 +130,10 @@ def _build_recruiter_context(user: User, db: Session) -> str:
         })
 
     context = {
-        "company":  company.name if company else "Unknown",
-        "recruiter": user.full_name,
+        "company":     company.name if company else "Unknown",
+        "recruiter":   user.full_name,
         "active_jobs": len(jobs),
-        "pipeline": pipeline_summary,
+        "pipeline":    pipeline_summary,
     }
     return json.dumps(context, indent=2)
 
@@ -164,11 +168,20 @@ def _summarize_messages(messages: list) -> str:
     )
     try:
         resp = client.chat.completions.create(
-            model=settings.LLM_MODEL,
-            messages=[{
-                "role": "user",
-                "content": f"Summarize this conversation in 3-4 sentences, keeping key facts about the user:\n\n{text}"
-            }],
+            model=GROQ_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a concise summarizer. Return only the summary, no preamble.",
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        "Summarize this conversation in 3-4 sentences, "
+                        f"keeping key facts about the user:\n\n{text}"
+                    ),
+                },
+            ],
             temperature=0,
             max_tokens=200,
         )
@@ -189,12 +202,11 @@ def _update_memory(
 
     memory.total_messages = (memory.total_messages or 0) + 2
 
-    # summarize if over limit
     if len(messages) > SUMMARY_TRIGGER:
-        to_summarize    = messages[:-MAX_MESSAGES]
-        keep            = messages[-MAX_MESSAGES:]
-        new_summary     = _summarize_messages(to_summarize)
-        memory.summary  = (memory.summary or "") + " " + new_summary
+        to_summarize   = messages[:-MAX_MESSAGES]
+        keep           = messages[-MAX_MESSAGES:]
+        new_summary    = _summarize_messages(to_summarize)
+        memory.summary = (memory.summary or "") + " " + new_summary
         memory.messages = keep
     else:
         memory.messages = messages[-MAX_MESSAGES:]
@@ -210,18 +222,13 @@ def _handle_action(
     user_id: str,
     db:      Session,
 ) -> tuple[str, str | None]:
-    """
-    Parse KAREN's response for auto-apply actions.
-    Returns (cleaned_reply, action_taken_message)
-    """
     action_taken = None
 
     if "ACTION:APPLY:" in reply:
         try:
-            job_id    = reply.split("ACTION:APPLY:")[1].split()[0].strip()
+            job_id      = reply.split("ACTION:APPLY:")[1].split()[0].strip()
             clean_reply = reply.replace(f"ACTION:APPLY:{job_id}", "").strip()
 
-            # auto-apply
             from api.applications.service import apply_to_job
             app = apply_to_job(
                 user_id=user_id,
@@ -229,12 +236,12 @@ def _handle_action(
                 resume_id=None,
                 db=db,
             )
-            job = db.query(Job).filter(Job.id == job_id).first()
+            job          = db.query(Job).filter(Job.id == job_id).first()
             action_taken = f"Applied to: {job.title if job else job_id}"
             return clean_reply, action_taken
         except Exception as e:
             clean_reply = reply.replace(
-                reply[reply.find("ACTION:APPLY:"):reply.find("ACTION:APPLY:")+50], ""
+                reply[reply.find("ACTION:APPLY:"):reply.find("ACTION:APPLY:") + 50], ""
             ).strip()
             return clean_reply + f"\n(Note: Could not auto-apply — {str(e)})", None
 
@@ -252,7 +259,6 @@ def chat(
     if not user:
         return {"reply": "User not found", "action_taken": None, "suggestions": []}
 
-    # build context based on role
     is_recruiter = user.role in (UserRole.RECRUITER, UserRole.ADMIN)
     if is_recruiter:
         profile     = _build_recruiter_context(user, db)
@@ -261,7 +267,6 @@ def chat(
         profile     = _build_jobseeker_context(user, db)
         system_tmpl = JOBSEEKER_SYSTEM
 
-    # get memory
     memory  = _get_or_create_memory(user_id, db)
     summary = memory.summary or "No previous conversation."
 
@@ -270,16 +275,14 @@ def chat(
         summary=summary,
     )
 
-    # build messages for API
     messages = [{"role": "system", "content": system_prompt}]
     for m in (memory.messages or []):
         messages.append({"role": m["role"], "content": m["content"]})
     messages.append({"role": "user", "content": message})
 
-    # call OpenAI
     try:
         resp = client.chat.completions.create(
-            model=settings.LLM_MODEL,
+            model=GROQ_MODEL,
             messages=messages,
             temperature=0.7,
             max_tokens=500,
@@ -292,13 +295,8 @@ def chat(
             "suggestions":  [],
         }
 
-    # handle actions
     clean_reply, action_taken = _handle_action(raw_reply, user_id, db)
-
-    # update memory
     _update_memory(memory, message, clean_reply, db)
-
-    # generate follow-up suggestions
     suggestions = _get_suggestions(user, is_recruiter)
 
     return {
@@ -326,14 +324,14 @@ def _get_suggestions(user: User, is_recruiter: bool) -> list[str]:
 def get_memory(user_id: str, db: Session) -> dict:
     memory = _get_or_create_memory(user_id, db)
     return {
-        "total_messages": memory.total_messages,
+        "total_messages":  memory.total_messages,
         "recent_messages": memory.messages,
-        "has_summary": bool(memory.summary),
+        "has_summary":     bool(memory.summary),
     }
 
 
 def clear_memory(user_id: str, db: Session):
-    memory = _get_or_create_memory(user_id, db)
+    memory                = _get_or_create_memory(user_id, db)
     memory.messages       = []
     memory.summary        = None
     memory.total_messages = 0

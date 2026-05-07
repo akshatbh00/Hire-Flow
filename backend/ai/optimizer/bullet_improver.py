@@ -1,16 +1,22 @@
 """
 optimizer/bullet_improver.py — PREMIUM FEATURE
 Converts weak resume bullets into strong STAR-format bullets.
-"""
-from openai import OpenAI
-from config import settings
-import json
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+Converted from OpenAI → Groq (llama-3.3-70b-versatile)
+"""
+import re
+import json
+from groq import Groq
+from config import settings
+
+client = Groq(api_key=settings.GROQ_API_KEY)
+
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 BULLET_PROMPT = """Improve these resume bullet points using the STAR format 
 (Situation, Task, Action, Result). Add metrics where reasonable.
-Keep each bullet under 20 words. Return JSON only:
+Keep each bullet under 20 words.
+Return ONLY raw valid JSON with no markdown, no explanation, no code fences:
 
 {{"improved": ["bullet1", "bullet2", ...]}}
 
@@ -32,19 +38,36 @@ class BulletImprover:
         )
         try:
             resp = client.chat.completions.create(
-                model=settings.LLM_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a JSON-only API. Never output anything except raw, valid JSON.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
                 temperature=0.4,
             )
-            data = json.loads(resp.choices[0].message.content)
+
+            raw = resp.choices[0].message.content.strip()
+
+            # Strip accidental markdown fences
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+
+            data = json.loads(raw)
             return data.get("improved", bullets)
-        except Exception:
+
+        except (json.JSONDecodeError, Exception):
             return bullets
 
     def extract_bullets_from_section(self, section_text: str) -> list[str]:
-        """Pull individual bullet lines from raw section text."""
-        lines  = section_text.split("\n")
+        """Pull individual bullet lines from raw section text. No API call."""
+        lines = section_text.split("\n")
         return [
             l.strip().lstrip("-•●◆▪").strip()
             for l in lines

@@ -1,14 +1,20 @@
 """
 parser.py — LLM-powered structured extraction from raw resume text
 Returns: name, email, phone, skills, experience (years), education, job_titles
+
+Converted from OpenAI → Groq (llama-3.3-70b-versatile)
 """
+import re
 import json
-from openai import OpenAI
+from groq import Groq
 from config import settings
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = Groq(api_key=settings.GROQ_API_KEY)
 
-PARSE_PROMPT = """Extract structured data from this resume. Return ONLY valid JSON, no markdown.
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
+PARSE_PROMPT = """Extract structured data from this resume.
+Return ONLY raw valid JSON with no markdown, no explanation, no code fences.
 
 Schema:
 {
@@ -33,16 +39,30 @@ Resume:
 class ResumeParser:
 
     def parse(self, raw_text: str) -> dict:
-        resp = client.chat.completions.create(
-            model=settings.LLM_MODEL,
-            messages=[
-                {"role": "user", "content": PARSE_PROMPT + raw_text[:6000]}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0,
-        )
-        content = resp.choices[0].message.content
         try:
-            return json.loads(content)
-        except json.JSONDecodeError:
+            resp = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a JSON-only API. Never output anything except raw, valid JSON.",
+                    },
+                    {
+                        "role": "user",
+                        "content": PARSE_PROMPT + raw_text[:6000],
+                    },
+                ],
+                temperature=0,
+            )
+
+            raw = resp.choices[0].message.content.strip()
+
+            # Strip accidental markdown fences
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+
+            return json.loads(raw)
+
+        except (json.JSONDecodeError, Exception):
             return {}

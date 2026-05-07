@@ -1,17 +1,22 @@
 """
 ai/ats/scorer.py — ATS scoring orchestrator
 Now uses all 4 submodules for modular, accurate scoring.
-Replaces the old monolithic scorer.py
+
+Converted from OpenAI → Groq (llama-3.3-70b-versatile)
 """
+import re
 import json
-from openai import OpenAI
+from groq import Groq
 from config import settings
 from ai.ats.report_generator import ATSReportGenerator
 
-client    = OpenAI(api_key=settings.OPENAI_API_KEY)
+client    = Groq(api_key=settings.GROQ_API_KEY)
 generator = ATSReportGenerator()
 
-CLARITY_PROMPT = """Rate this resume for clarity and keyword density. Return JSON only:
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
+CLARITY_PROMPT = """Rate this resume for clarity and keyword density.
+Return ONLY raw valid JSON with no markdown, no explanation, no code fences:
 {
   "keyword_density": <int 0-35>,
   "clarity_score":   <int 0-10>,
@@ -27,7 +32,7 @@ class ATSScorer:
         self,
         raw_text:    str,
         parsed_data: dict,
-        jd_text:     str = "",      # optional — if provided, JD-specific keyword match
+        jd_text:     str = "",
     ) -> dict:
         """
         Main entry point. Called by pipeline.py after parse step.
@@ -57,26 +62,28 @@ class ATSScorer:
     def _llm_clarity(self, text: str) -> dict:
         try:
             resp = client.chat.completions.create(
-                model=settings.LLM_MODEL,
-                messages=[{"role": "user", "content": CLARITY_PROMPT + text[:4000]}],
-                response_format={"type": "json_object"},
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a JSON-only API. Never output anything except raw, valid JSON.",
+                    },
+                    {
+                        "role": "user",
+                        "content": CLARITY_PROMPT + text[:4000],
+                    },
+                ],
                 temperature=0,
             )
-            return json.loads(resp.choices[0].message.content)
-        except Exception:
+
+            raw = resp.choices[0].message.content.strip()
+
+            # Strip accidental markdown fences
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+
+            return json.loads(raw)
+
+        except (json.JSONDecodeError, Exception):
             return {"keyword_density": 20, "clarity_score": 7, "issues": []}
-```
-
----
-
-**Batch 9 — Retriever Layer + Prompt Loader**
-```
-backend/ai/
-├── retriever/
-│   ├── vector_retriever.py     ← new
-│   ├── hybrid_retriever.py     ← new
-│   └── reranker.py             ← new
-├── prompts/
-│   └── prompt_loader.py        ← new
-└── matching/
-    └── job_matcher.py          ← update (wire retriever in)

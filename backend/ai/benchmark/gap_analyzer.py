@@ -2,12 +2,17 @@
 gap_analyzer.py — deep skill + experience gap analysis
 Goes beyond comparator.py's basic skill diff.
 Gives actionable, prioritized suggestions with impact scores.
-"""
-from openai import OpenAI
-from config import settings
-import json
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+Converted from OpenAI → Groq (llama-3.3-70b-versatile)
+"""
+import re
+import json
+from groq import Groq
+from config import settings
+
+client = Groq(api_key=settings.GROQ_API_KEY)
+
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 GAP_PROMPT = """You are a career coach analyzing a candidate's resume against hired candidates for the same role.
 
@@ -19,7 +24,7 @@ Selected pool — common skills: {pool_skills}
 Selected pool — avg experience: {pool_avg_exp} years
 Selected pool — common titles: {pool_titles}
 
-Return ONLY valid JSON:
+Return ONLY raw valid JSON with no markdown, no explanation, no code fences:
 {{
   "critical_gaps": [
     {{"skill": str, "impact": "high|medium|low", "how_to_add": str}}
@@ -41,7 +46,7 @@ class GapAnalyzer:
 
     def analyze(
         self,
-        candidate_parsed: dict,
+        candidate_parsed:    dict,
         pool_resumes_parsed: list[dict],
     ) -> dict:
         if not pool_resumes_parsed:
@@ -78,11 +83,28 @@ class GapAnalyzer:
 
         try:
             resp = client.chat.completions.create(
-                model=settings.LLM_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a JSON-only API. Never output anything except raw, valid JSON.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
                 temperature=0.2,
             )
-            return json.loads(resp.choices[0].message.content)
-        except Exception as e:
+
+            raw = resp.choices[0].message.content.strip()
+
+            # Strip accidental markdown fences
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+
+            return json.loads(raw)
+
+        except (json.JSONDecodeError, Exception) as e:
             return {"error": str(e)}
