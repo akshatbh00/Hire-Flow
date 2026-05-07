@@ -1,4 +1,5 @@
 "use client";
+// PATH: frontend/app/(auth)/login/page.tsx
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -32,13 +33,45 @@ export default function LoginPage() {
       display:    "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "'DM Sans', sans-serif", padding: "20px",
     }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *,*::before,*::after { box-sizing: border-box; }
+        .login-card { padding: 48px 40px !important; }
+        @media (max-width: 480px) {
+          .login-card { padding: 32px 20px !important; }
+        }
+        .login-input {
+          width: 100%; padding: 12px 16px;
+          border: 1px solid #e2e8f0; border-radius: 10px;
+          font-size: 16px; color: #0f172a; outline: none;
+          background: #f8fafc; font-family: 'DM Sans', sans-serif;
+          box-sizing: border-box; transition: border-color 0.15s;
+        }
+        .login-input:focus { border-color: #2563eb; }
+        .login-btn {
+          width: 100%; padding: 13px;
+          color: #fff; border: none; border-radius: 10px;
+          font-size: 15px; font-weight: 600;
+          font-family: 'DM Sans', sans-serif;
+          letter-spacing: -0.01em; transition: background 0.15s;
+        }
+        .login-btn:not(:disabled):hover { background: #1d4ed8 !important; }
+        .google-btn {
+          width: 100%; padding: 12px;
+          background: #fff; border: 1px solid #e2e8f0;
+          border-radius: 10px; font-size: 14px; color: #374151;
+          cursor: pointer; font-family: 'DM Sans', sans-serif;
+          font-weight: 500; display: flex; align-items: center;
+          justify-content: center; gap: 8px; transition: border-color 0.15s;
+        }
+        .google-btn:hover { border-color: #2563eb; }
+      `}</style>
 
       {/* Card */}
-      <div style={{
+      <div className="login-card" style={{
         background:   "#fff",
         borderRadius: 20,
         border:       "1px solid #e2e8f0",
-        padding:      "48px 40px",
         width:        "100%", maxWidth: 420,
         boxShadow:    "0 20px 60px rgba(0,0,0,0.06)",
       }}>
@@ -81,59 +114,37 @@ export default function LoginPage() {
               Email address
             </label>
             <input
+              className="login-input"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@company.com"
-              style={{
-                width: "100%", padding: "12px 16px",
-                border: "1px solid #e2e8f0", borderRadius: 10,
-                fontSize: 14, color: "#0f172a", outline: "none",
-                background: "#f8fafc", fontFamily: "'DM Sans', sans-serif",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-              onBlur={(e)  => e.target.style.borderColor = "#e2e8f0"}
             />
           </div>
 
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>
-                Password
-              </label>
-              <a href="#" style={{ fontSize: 13, color: "#2563eb", textDecoration: "none" }}>
-                Forgot password?
-              </a>
+              <label style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>Password</label>
+              <a href="#" style={{ fontSize: 13, color: "#2563eb", textDecoration: "none" }}>Forgot password?</a>
             </div>
             <input
+              className="login-input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              style={{
-                width: "100%", padding: "12px 16px",
-                border: "1px solid #e2e8f0", borderRadius: 10,
-                fontSize: 14, color: "#0f172a", outline: "none",
-                background: "#f8fafc", fontFamily: "'DM Sans', sans-serif",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-              onBlur={(e)  => e.target.style.borderColor = "#e2e8f0"}
             />
           </div>
 
           <button
             type="submit"
+            className="login-btn"
             disabled={isLoading}
             style={{
-              width: "100%", padding: "13px",
               background: isLoading ? "#93c5fd" : "#2563eb",
-              color: "#fff", border: "none", borderRadius: 10,
-              fontSize: 15, fontWeight: 600, cursor: isLoading ? "not-allowed" : "pointer",
-              fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.01em",
+              cursor: isLoading ? "not-allowed" : "pointer",
             }}
           >
             {isLoading ? "Signing in..." : "Sign in →"}
@@ -147,22 +158,14 @@ export default function LoginPage() {
           <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
         </div>
 
-        {/* Social placeholder */}
-        <button style={{
-          width: "100%", padding: "12px",
-          background: "#fff", border: "1px solid #e2e8f0",
-          borderRadius: 10, fontSize: 14, color: "#374151",
-          cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-          fontWeight: 500, display: "flex", alignItems: "center",
-          justifyContent: "center", gap: 8,
-        }}>
+        <button className="google-btn">
           <span style={{ fontSize: 16 }}>G</span> Continue with Google
         </button>
-      </div>
 
-      <p style={{ position: "fixed", bottom: 24, fontSize: 12, color: "#94a3b8" }}>
-        © 2026 HireFlow · Transparent Hiring
-      </p>
+        <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", marginTop: 24 }}>
+          © 2026 HireFlow · Transparent Hiring
+        </p>
+      </div>
     </div>
   );
 }
