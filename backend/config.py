@@ -59,3 +59,8 @@ def get_settings() -> Settings:
     return Settings()
 
 settings = get_settings()
+# AI
+OPENAI_API_KEY: str = ""        # only for embeddings
+EMBEDDING_MODEL: str = "text-embedding-3-small"
+LLM_MODEL: str = "gpt-4o-mini"  # can leave or remove, no longer used
+GROQ_API_KEY: str               # all LLM/chat calls
