@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(user)/dashboard/page.tsx
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usersApi, resumeApi, DashboardOut, ResumeOut } from "@/lib/api";

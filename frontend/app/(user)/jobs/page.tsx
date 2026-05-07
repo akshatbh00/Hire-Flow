@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(user)/jobs/page.tsx
 import { useEffect, useState } from "react";
 import { jobsApi, applicationsApi, JobOut } from "@/lib/api";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
