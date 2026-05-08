@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(user)/applications/page.tsx
 import { useEffect, useState } from "react";
 import { applicationsApi, ApplicationOut } from "@/lib/api";
 import StageTracker from "@/components/dashboard/stage-tracker";

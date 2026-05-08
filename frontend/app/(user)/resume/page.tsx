@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(user)/resume/page.tsx
 import { useEffect, useState, useRef } from "react";
 import { resumeApi, ResumeOut } from "@/lib/api";
 import AtsScoreDisplay from "@/components/resume/ats-score-display";

@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(user)/jobs/[jobId]/page.tsx
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { jobsApi, applicationsApi, JobOut } from "@/lib/api";

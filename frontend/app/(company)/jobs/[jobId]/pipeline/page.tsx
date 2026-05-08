@@ -8,37 +8,63 @@ import { useRouter } from "next/navigation";
 import KanbanBoard from "@/components/pipeline/kanban-board";
 import Link from "next/link";
 
-/* ─── shared sidebar helpers (same as dashboard) ─────── */
+/* ─── Icons ─────────────────────────────────────────── */
 function Icon({ t }: { t: string }) {
-  const p = { stroke: "#64748B", strokeWidth: 1.3, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const p = {
+    stroke: "currentColor",
+    strokeWidth: 1.3,
+    fill: "none",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
   const s = { width: 14, height: 14, viewBox: "0 0 16 16" };
   if (t === "grid")     return <svg {...s}><rect x="1" y="1" width="6" height="6" rx="1.5" fill="#4F46E5"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="#4F46E5"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="#4F46E5"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="#4F46E5"/></svg>;
   if (t === "jobs")     return <svg {...s} {...p}><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 7h6M5 10h4"/></svg>;
   if (t === "cands")    return <svg {...s} {...p}><circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.761 2.239-5 5-5"/><circle cx="12" cy="10" r="2.5"/><path d="M10 12.5l1.5 1.5 2.5-2.5"/></svg>;
   if (t === "pipe")     return <svg {...s} {...p}><path d="M2 4h12M2 8h10M2 12h8"/></svg>;
-  if (t === "clock")    return <svg {...s} {...p}><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>;
-  if (t === "salary")   return <svg {...s} {...p}><path d="M8 2v12M5 5h4.5a2.5 2.5 0 010 5H5"/></svg>;
   if (t === "ref")      return <svg {...s} {...p}><path d="M10 8l4-4-4-4M14 4H6a4 4 0 000 8h1"/></svg>;
   if (t === "settings") return <svg {...s} {...p}><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></svg>;
-  if (t === "bell")     return <svg {...s} {...p}><path d="M8 1a5 5 0 015 5v3l1.5 2.5H1.5L3 9V6a5 5 0 015-5zM6.5 13.5a1.5 1.5 0 003 0"/></svg>;
   if (t === "back")     return <svg {...s} {...p}><path d="M10 3L5 8l5 5"/></svg>;
+  if (t === "menu")     return <svg {...s} {...p}><path d="M1 4h14M1 8h14M1 12h14"/></svg>;
+  if (t === "close")    return <svg {...s} {...p}><path d="M2 2l12 12M14 2L2 14"/></svg>;
   return null;
 }
 
-function SbLink({ href, icon, label, active, badge }: { href: string; icon: string; label: string; active?: boolean; badge?: number }) {
+/* ─── Sidebar Link ───────────────────────────────────── */
+function SbLink({
+  href,
+  icon,
+  label,
+  active,
+  badge,
+  onClick,
+}: {
+  href: string;
+  icon: string;
+  label: string;
+  active?: boolean;
+  badge?: number;
+  onClick?: () => void;
+}) {
   return (
-    <Link href={href} className="sb-lnk" style={{
-      display: "flex", alignItems: "center", gap: 9,
-      padding: "8px 14px", fontSize: 12, textDecoration: "none",
-      color: active ? "#4F46E5" : "#64748B",
-      background: active ? "#EEF2FF" : "transparent",
-      fontWeight: active ? 600 : 400,
-      margin: "1px 6px", borderRadius: 8,
-    }}>
-      <Icon t={icon} />
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`
+        flex items-center gap-2.5 px-3.5 py-2 text-xs rounded-lg mx-1.5 my-px
+        transition-all duration-100 no-underline font-medium
+        ${active
+          ? "bg-indigo-50 text-indigo-600 font-semibold"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+        }
+      `}
+    >
+      <span className={active ? "text-indigo-600" : "text-slate-400"}>
+        <Icon t={icon} />
+      </span>
       {label}
       {badge != null && badge > 0 && (
-        <span style={{ marginLeft: "auto", background: "#EEF2FF", color: "#4F46E5", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10 }}>
+        <span className="ml-auto bg-indigo-50 text-indigo-600 text-[9px] font-bold px-1.5 py-px rounded-full">
           {badge}
         </span>
       )}
@@ -46,17 +72,91 @@ function SbLink({ href, icon, label, active, badge }: { href: string; icon: stri
   );
 }
 
-/* ─── main page ───────────────────────────────────────── */
+/* ─── Sidebar Content ────────────────────────────────── */
+function SidebarContent({
+  company,
+  jobs,
+  user,
+  logout,
+  router,
+  onNavClick,
+}: {
+  company: any;
+  jobs: JobOut[];
+  user: any;
+  logout: () => void;
+  router: any;
+  onNavClick?: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-4 py-[18px] border-b border-slate-100">
+        <span className="text-[15px] font-bold tracking-tight text-slate-900">
+          Hire<span className="text-indigo-600">Flow</span>
+        </span>
+      </div>
+
+      {/* Company badge */}
+      {company && (
+        <div className="mx-2.5 mt-2.5 mb-1 px-3 py-1.5 bg-green-50 rounded-lg text-[11px] font-semibold text-green-700 truncate">
+          {company.name}
+        </div>
+      )}
+
+      {/* Main nav */}
+      <div className="pt-3.5 pb-1 px-1.5">
+        <p className="px-2.5 pb-1.5 text-[9px] font-semibold text-slate-400 uppercase tracking-widest">
+          Main
+        </p>
+        <SbLink href="/recruiter-dashboard" icon="grid"  label="Dashboard" onClick={onNavClick} />
+        <SbLink href="/recruiter-jobs"      icon="jobs"  label="Jobs"       badge={jobs.length} onClick={onNavClick} />
+        <SbLink href="/candidates"          icon="cands" label="Candidates" onClick={onNavClick} />
+        <SbLink href="/candidates"          icon="pipe"  label="Pipeline"   active onClick={onNavClick} />
+      </div>
+
+      <div className="pt-2.5 pb-1 px-1.5">
+        <p className="px-2.5 pb-1.5 text-[9px] font-semibold text-slate-400 uppercase tracking-widest">
+          Tools
+        </p>
+        <SbLink href="/referrals" icon="ref" label="Referrals" onClick={onNavClick} />
+      </div>
+
+      {/* Bottom */}
+      <div className="mt-auto border-t border-slate-100 py-3 px-1.5">
+        <SbLink href="/settings" icon="settings" label="Settings" onClick={onNavClick} />
+        <div className="flex items-center gap-2.5 px-3.5 py-2 mt-1">
+          <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+            {user?.full_name?.[0]?.toUpperCase() ?? "R"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-slate-900 truncate">{user?.full_name ?? "Recruiter"}</p>
+            <p className="text-[10px] text-slate-400 truncate">{user?.email ?? ""}</p>
+          </div>
+          <button
+            onClick={() => { logout(); router.push("/login"); }}
+            className="text-[10px] text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer font-[inherit] shrink-0"
+          >
+            Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Page ─────────────────────────────────────── */
 export default function PipelinePage() {
   const { jobId }        = useParams<{ jobId: string }>();
   const { user, logout } = useUserStore();
   const router           = useRouter();
 
-  const [company, setCompany] = useState<any>(null);
-  const [jobs,    setJobs]    = useState<JobOut[]>([]);
-  const [job,     setJob]     = useState<any>(null);
-  const [kanban,  setKanban]  = useState<Record<string, any[]>>({});
-  const [loading, setLoading] = useState(true);
+  const [company,       setCompany]       = useState<any>(null);
+  const [jobs,          setJobs]          = useState<JobOut[]>([]);
+  const [job,           setJob]           = useState<any>(null);
+  const [kanban,        setKanban]        = useState<Record<string, any[]>>({});
+  const [loading,       setLoading]       = useState(true);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -71,6 +171,15 @@ export default function PipelinePage() {
       setKanban(kanbanData as Record<string, any[]>);
     }).finally(() => setLoading(false));
   }, [jobId]);
+
+  // Close sidebar on resize to desktop
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) setSidebarOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   async function handleMove(appId: string, toStage: string) {
     await pipelineApi.move(appId, toStage);
@@ -95,92 +204,111 @@ export default function PipelinePage() {
   const interviews = (kanban["round_1"]?.length ?? 0) + (kanban["round_2"]?.length ?? 0) + (kanban["round_3"]?.length ?? 0) + (kanban["hr_round"]?.length ?? 0);
   const offers     = (kanban["offer"]?.length ?? 0) + (kanban["selected"]?.length ?? 0);
 
-  return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC", fontFamily: "'DM Sans',-apple-system,sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        .sb-lnk{transition:background 0.1s,color 0.1s}
-        .sb-lnk:hover{background:#F8FAFC!important;color:#0F172A!important}
-        ::-webkit-scrollbar{width:3px;height:3px}
-        ::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:2px}
-      `}</style>
+  const stats = [
+    { label: "Total",      value: total,      textColor: "text-slate-900",  bg: "bg-slate-50",   border: "border-slate-200" },
+    { label: "Screening",  value: screening,  textColor: "text-amber-800",  bg: "bg-amber-50",   border: "border-amber-200" },
+    { label: "Interviews", value: interviews, textColor: "text-indigo-600", bg: "bg-indigo-50",  border: "border-indigo-200" },
+    { label: "Offers",     value: offers,     textColor: "text-green-700",  bg: "bg-green-50",   border: "border-green-200" },
+  ];
 
-      {/* ── Sidebar ── */}
-      <aside style={{ width: 210, background: "#fff", borderRight: "0.5px solid #E2E8F0", display: "flex", flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
-        <div style={{ padding: "18px 16px 12px", borderBottom: "0.5px solid #F1F5F9" }}>
-          <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.03em", color: "#0F172A" }}>
-            Hire<span style={{ color: "#4F46E5" }}>Flow</span>
-          </span>
-        </div>
-        {company && (
-          <div style={{ margin: "10px 10px 4px", padding: "7px 12px", background: "#F0FDF4", borderRadius: 8, fontSize: 11, fontWeight: 600, color: "#15803D" }}>
-            {company.name}
-          </div>
-        )}
-        <div style={{ padding: "14px 6px 4px" }}>
-          <div style={{ padding: "0 10px 6px", fontSize: 9, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Main</div>
-          <SbLink href="/recruiter-dashboard" icon="grid"  label="Dashboard" />
-          <SbLink href="/recruiter-jobs"      icon="jobs"  label="Jobs"       badge={jobs.length} />
-          <SbLink href="/candidates"          icon="cands" label="Candidates" />
-          <SbLink href="/candidates"          icon="pipe"  label="Pipeline"   active />
-        </div>
-        <div style={{ padding: "10px 6px 4px" }}>
-          <div style={{ padding: "0 10px 6px", fontSize: 9, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Tools</div>
-          <SbLink href="/referrals"      icon="ref"    label="Referrals" />
-        </div>
-        <div style={{ marginTop: "auto", padding: "12px 6px", borderTop: "0.5px solid #F1F5F9" }}>
-          <SbLink href="/settings" icon="settings" label="Settings" />
-          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 14px", marginTop: 4 }}>
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#4F46E5", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {user?.full_name?.[0]?.toUpperCase() ?? "R"}
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.full_name ?? "Recruiter"}</p>
-              <p style={{ fontSize: 10, color: "#94A3B8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email ?? ""}</p>
-            </div>
-            <button onClick={() => { logout(); router.push("/login"); }} style={{ background: "none", border: "none", fontSize: 10, color: "#94A3B8", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-              Out
-            </button>
-          </div>
-        </div>
+  const sidebarProps = { company, jobs, user, logout, router };
+
+  return (
+    <div className="flex min-h-screen bg-slate-50 font-sans">
+
+      {/* ── Mobile backdrop ── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar (desktop: static | mobile: slide-over) ── */}
+      <aside
+        className={`
+          fixed md:sticky top-0 h-screen z-40
+          w-[210px] bg-white border-r border-slate-200
+          flex flex-col shrink-0 overflow-y-auto
+          transition-transform duration-200 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0
+        `}
+      >
+        {/* Mobile close button */}
+        <button
+          className="absolute top-3 right-3 md:hidden text-slate-400 hover:text-slate-700 bg-transparent border-none cursor-pointer"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        >
+          <Icon t="close" />
+        </button>
+
+        <SidebarContent
+          {...sidebarProps}
+          onNavClick={() => setSidebarOpen(false)}
+        />
       </aside>
 
       {/* ── Main ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
         {/* Topbar */}
-        <div style={{ background: "#fff", borderBottom: "0.5px solid #E2E8F0", padding: "0 24px", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, position: "sticky", top: 0, zIndex: 40 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Link href="/recruiter-jobs" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#64748B", textDecoration: "none", padding: "4px 8px", borderRadius: 7, background: "#F8FAFC", border: "0.5px solid #E2E8F0" }}>
+        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 md:px-6 h-[52px] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+
+            {/* Hamburger — mobile only */}
+            <button
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-800 cursor-pointer mr-1"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+            >
+              <Icon t="menu" />
+            </button>
+
+            <Link
+              href="/recruiter-jobs"
+              className="flex items-center gap-1 text-xs text-slate-500 no-underline px-2 py-1 rounded-lg bg-slate-50 border border-slate-200 hover:text-slate-800 shrink-0"
+            >
               <Icon t="back" /> Jobs
             </Link>
-            <span style={{ color: "#CBD5E1", fontSize: 12 }}>/</span>
-            {loading
-              ? <div style={{ width: 140, height: 16, borderRadius: 6, background: "#E2E8F0" }} />
-              : <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{job?.title ?? "Pipeline"}</span>
-            }
+            <span className="text-slate-300 text-xs">/</span>
+
+            {loading ? (
+              <div className="w-32 h-4 rounded-md bg-slate-200 animate-pulse" />
+            ) : (
+              <span className="text-[13px] font-semibold text-slate-900 truncate max-w-[140px] sm:max-w-xs">
+                {job?.title ?? "Pipeline"}
+              </span>
+            )}
           </div>
-          <Link href="/jobs/create" style={{ background: "#4F46E5", color: "#fff", padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
-            + Post Job
+
+          <Link
+            href="/jobs/create"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 md:px-4 md:py-2 rounded-lg no-underline shrink-0 transition-colors"
+          >
+            <span className="hidden sm:inline">+ Post Job</span>
+            <span className="sm:hidden">+ Post</span>
           </Link>
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
 
           {/* Job header + stats */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+
+            {/* Title */}
+            <div className="min-w-0">
               {loading ? (
-                <div style={{ width: 200, height: 24, borderRadius: 6, background: "#E2E8F0" }} />
+                <div className="w-48 h-6 rounded-md bg-slate-200 animate-pulse" />
               ) : (
                 <>
-                  <h1 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em" }}>
+                  <h1 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {job?.title ?? "Pipeline"}
                   </h1>
                   {job?.company_name && (
-                    <p style={{ fontSize: 12, color: "#64748B", marginTop: 3 }}>
+                    <p className="text-xs text-slate-500 mt-1 truncate">
                       {job.company_name} · {job.location || "Remote"} · {job.job_type}
                     </p>
                   )}
@@ -188,31 +316,36 @@ export default function PipelinePage() {
               )}
             </div>
 
-            {/* Stats */}
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {[
-                { label: "Total",      value: total,      color: "#0F172A", bg: "#F8FAFC",  border: "#E2E8F0" },
-                { label: "Screening",  value: screening,  color: "#92400E", bg: "#FFFBEB",  border: "#FDE68A" },
-                { label: "Interviews", value: interviews, color: "#4F46E5", bg: "#EEF2FF",  border: "#C7D7FE" },
-                { label: "Offers",     value: offers,     color: "#15803D", bg: "#F0FDF4",  border: "#BBF7D0" },
-              ].map(({ label, value, color, bg, border }) => (
-                <div key={label} style={{ background: bg, border: `1px solid ${border}`, borderRadius: 10, padding: "10px 16px", textAlign: "center", minWidth: 72 }}>
-                  <p style={{ fontSize: 20, fontWeight: 700, color, letterSpacing: "-0.03em" }}>{value}</p>
-                  <p style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: 2, fontWeight: 600 }}>{label}</p>
+            {/* Stats row — scrollable on very small screens */}
+            <div className="flex gap-2.5 overflow-x-auto pb-1 shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+              {stats.map(({ label, value, textColor, bg, border }) => (
+                <div
+                  key={label}
+                  className={`${bg} border ${border} rounded-xl px-3.5 py-2.5 text-center min-w-[68px] shrink-0`}
+                >
+                  <p className={`text-lg md:text-xl font-bold tracking-tight ${textColor}`}>{value}</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5 font-semibold whitespace-nowrap">
+                    {label}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Kanban board */}
+          {/* Kanban board — horizontal scroll on mobile */}
           {loading ? (
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} style={{ flexShrink: 0, width: 220, height: 320, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14 }} />
+                <div
+                  key={i}
+                  className="shrink-0 w-[200px] md:w-[220px] h-72 bg-white border border-slate-200 rounded-2xl animate-pulse"
+                />
               ))}
             </div>
           ) : (
-            <KanbanBoard kanban={kanban} onMove={handleMove} />
+            <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2">
+              <KanbanBoard kanban={kanban} onMove={handleMove} />
+            </div>
           )}
         </div>
       </div>

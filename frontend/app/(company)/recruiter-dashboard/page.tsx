@@ -6,7 +6,7 @@ import { useUserStore } from "@/store/user.store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-/* ─── constants ───────────────────────────────────────── */
+/* ─── Constants ──────────────────────────────────────── */
 const PIPELINE_STAGES = [
   { key: "applied",       label: "Applied"    },
   { key: "ats_screening", label: "Screening"  },
@@ -25,7 +25,7 @@ const AVATAR_COLORS = [
   { bg: "#FDF4FF", text: "#7E22CE" },
 ];
 
-/* ─── helpers ─────────────────────────────────────────── */
+/* ─── Helpers ────────────────────────────────────────── */
 function pickColor(name: string) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
@@ -36,9 +36,15 @@ function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
-/* ─── icon component ──────────────────────────────────── */
+/* ─── Icons ─────────────────────────────────────────── */
 function Icon({ t }: { t: string }) {
-  const p = { stroke: "#64748B", strokeWidth: 1.3, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const p = {
+    stroke: "currentColor",
+    strokeWidth: 1.3,
+    fill: "none",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
   const s = { width: 14, height: 14, viewBox: "0 0 16 16" };
   if (t === "grid")     return <svg {...s}><rect x="1" y="1" width="6" height="6" rx="1.5" fill="#4F46E5"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="#4F46E5"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="#4F46E5"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="#4F46E5"/></svg>;
   if (t === "jobs")     return <svg {...s} {...p}><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 7h6M5 10h4"/></svg>;
@@ -49,24 +55,36 @@ function Icon({ t }: { t: string }) {
   if (t === "ref")      return <svg {...s} {...p}><path d="M10 8l4-4-4-4M14 4H6a4 4 0 000 8h1"/></svg>;
   if (t === "settings") return <svg {...s} {...p}><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></svg>;
   if (t === "bell")     return <svg {...s} {...p}><path d="M8 1a5 5 0 015 5v3l1.5 2.5H1.5L3 9V6a5 5 0 015-5zM6.5 13.5a1.5 1.5 0 003 0"/></svg>;
+  if (t === "menu")     return <svg {...s} {...p}><path d="M1 4h14M1 8h14M1 12h14"/></svg>;
+  if (t === "close")    return <svg {...s} {...p}><path d="M2 2l12 12M14 2L2 14"/></svg>;
   return null;
 }
 
-/* ─── sidebar link ────────────────────────────────────── */
-function SbLink({ href, icon, label, active, badge }: { href: string; icon: string; label: string; active?: boolean; badge?: number | null }) {
+/* ─── Sidebar Link ───────────────────────────────────── */
+function SbLink({
+  href, icon, label, active, badge, onClick,
+}: {
+  href: string; icon: string; label: string;
+  active?: boolean; badge?: number | null; onClick?: () => void;
+}) {
   return (
-    <Link href={href} className="sb-lnk" style={{
-      display: "flex", alignItems: "center", gap: 9,
-      padding: "8px 14px", fontSize: 12, textDecoration: "none",
-      color: active ? "#4F46E5" : "#64748B",
-      background: active ? "#EEF2FF" : "transparent",
-      fontWeight: active ? 600 : 400,
-      margin: "1px 6px", borderRadius: 8,
-    }}>
-      <Icon t={icon} />
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`
+        flex items-center gap-2.5 px-3.5 py-2 text-xs rounded-lg mx-1.5 my-px
+        transition-all duration-100 no-underline font-medium
+        ${active
+          ? "bg-indigo-50 text-indigo-600 font-semibold"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}
+      `}
+    >
+      <span className={active ? "text-indigo-600" : "text-slate-400"}>
+        <Icon t={icon} />
+      </span>
       {label}
       {badge != null && badge > 0 && (
-        <span style={{ marginLeft: "auto", background: "#FEF2F2", color: "#DC2626", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10 }}>
+        <span className="ml-auto bg-red-50 text-red-600 text-[9px] font-bold px-1.5 py-px rounded-full">
           {badge}
         </span>
       )}
@@ -74,18 +92,77 @@ function SbLink({ href, icon, label, active, badge }: { href: string; icon: stri
   );
 }
 
-/* ─── main page ───────────────────────────────────────── */
+/* ─── Sidebar Content ────────────────────────────────── */
+function SidebarContent({
+  company, jobs, user, logout, router, onNavClick,
+}: {
+  company: any; jobs: JobOut[]; user: any;
+  logout: () => void; router: any; onNavClick?: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 py-[18px] border-b border-slate-100">
+        <span className="text-[15px] font-bold tracking-tight text-slate-900">
+          Hire<span className="text-indigo-600">Flow</span>
+        </span>
+      </div>
+
+      {company && (
+        <div className="mx-2.5 mt-2.5 mb-1 px-3 py-1.5 bg-green-50 rounded-lg text-[11px] font-semibold text-green-700 truncate">
+          {company.name}
+        </div>
+      )}
+
+      <div className="pt-3.5 pb-1 px-1.5">
+        <p className="px-2.5 pb-1.5 text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Main</p>
+        <SbLink href="/recruiter-dashboard" icon="grid"  label="Dashboard"  active onClick={onNavClick} />
+        <SbLink href="/recruiter-jobs"      icon="jobs"  label="Jobs"        badge={jobs.length} onClick={onNavClick} />
+        <SbLink href="/candidates"          icon="cands" label="Candidates"  onClick={onNavClick} />
+        <SbLink href="/candidates"          icon="pipe"  label="Pipeline"    onClick={onNavClick} />
+      </div>
+
+      <div className="pt-2.5 pb-1 px-1.5">
+        <p className="px-2.5 pb-1.5 text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Tools</p>
+        <SbLink href="/interview-prep" icon="clock"  label="Interview Prep" onClick={onNavClick} />
+        <SbLink href="/salary"         icon="salary" label="Salary Data"    onClick={onNavClick} />
+        <SbLink href="/referrals"      icon="ref"    label="Referrals"      onClick={onNavClick} />
+      </div>
+
+      <div className="mt-auto border-t border-slate-100 py-3 px-1.5">
+        <SbLink href="/settings" icon="settings" label="Settings" onClick={onNavClick} />
+        <div className="flex items-center gap-2.5 px-3.5 py-2 mt-1">
+          <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+            {user?.full_name?.[0]?.toUpperCase() ?? "R"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold text-slate-900 truncate">{user?.full_name ?? "Recruiter"}</p>
+            <p className="text-[10px] text-slate-400 truncate">{user?.email ?? ""}</p>
+          </div>
+          <button
+            onClick={() => { logout(); router.push("/login"); }}
+            className="text-[10px] text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer font-[inherit] shrink-0"
+          >
+            Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Page ─────────────────────────────────────── */
 export default function RecruiterDashboardPage() {
   const router           = useRouter();
   const { user, logout } = useUserStore();
 
-  const [company, setCompany] = useState<any>(null);
-  const [stats,   setStats]   = useState<CompanyStats | null>(null);
-  const [jobs,    setJobs]    = useState<JobOut[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [company,     setCompany]     = useState<any>(null);
+  const [stats,       setStats]       = useState<CompanyStats | null>(null);
+  const [jobs,        setJobs]        = useState<JobOut[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const hour     = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const hour      = new Date().getHours();
+  const greeting  = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user?.full_name?.split(" ")[0] ?? "Recruiter";
 
   useEffect(() => {
@@ -100,161 +177,180 @@ export default function RecruiterDashboardPage() {
     }).finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth >= 768) setSidebarOpen(false); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   if (loading) return <Skeleton />;
 
-  const bd          = stats?.pipeline_breakdown ?? {};
-  const maxVal      = Math.max(...PIPELINE_STAGES.map(s => bd[s.key] ?? 0), 1);
-  const inPipeline  = Object.entries(bd).filter(([s]) => !["applied","ats_rejected","withdrawn"].includes(s)).reduce((a,[,v])=>a+v,0);
-  const offers      = bd["offer"] ?? 0;
+  const bd         = stats?.pipeline_breakdown ?? {};
+  const maxVal     = Math.max(...PIPELINE_STAGES.map(s => bd[s.key] ?? 0), 1);
+  const inPipeline = Object.entries(bd).filter(([s]) => !["applied","ats_rejected","withdrawn"].includes(s)).reduce((a,[,v])=>a+v,0);
+  const offers     = bd["offer"] ?? 0;
 
-  // Placeholder activity — in production wire to a real feed endpoint
-  const MOCK_NAMES  = ["Akshat Kumar","Priya Rao","Sneha K","Rohan V"];
-  const MOCK_MSGS   = (job: JobOut, i: number) => [
+  const MOCK_NAMES = ["Akshat Kumar","Priya Rao","Sneha K","Rohan V"];
+  const MOCK_MSGS  = (job: JobOut, i: number) => [
     `applied to ${job.title}`,
     `moved to Interview · ${job.title}`,
     `requested referral for ${job.title}`,
     `accepted offer · ${job.title}`,
   ][i % 4];
-  const MOCK_TIMES  = ["2h ago","5h ago","Yesterday","2 days ago"];
+  const MOCK_TIMES = ["2h ago","5h ago","Yesterday","2 days ago"];
 
   const activity = jobs.slice(0, 4).map((job, i) => {
     const name = MOCK_NAMES[i % MOCK_NAMES.length];
     return { id: job.id, initials: getInitials(name), color: pickColor(name), msg: MOCK_MSGS(job, i), time: MOCK_TIMES[i] };
   });
 
-  // Placeholder top candidates
   const topCands = jobs.slice(0, 3).map((job, i) => {
     const names  = ["Akshat Kumar","Priya Rao","Meera Shah"];
     const scores = [87, 82, 74];
     return { name: names[i], role: job.title, score: scores[i] };
   });
 
+  const statCards = [
+    { label: "Active Jobs",      value: stats?.active_jobs ?? 0,      sub: "Open roles",        color: "text-indigo-600" },
+    { label: "Total Applicants", value: stats?.total_applicants ?? 0, sub: "Across all roles",  color: "text-slate-900"  },
+    { label: "In Pipeline",      value: inPipeline,                    sub: "Active candidates", color: "text-violet-600" },
+    { label: "Offers Out",       value: offers,                        sub: "Awaiting response", color: "text-green-700"  },
+  ];
+
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#F8FAFC", fontFamily:"'DM Sans',-apple-system,sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        .sb-lnk{transition:background 0.1s,color 0.1s}
-        .sb-lnk:hover{background:#F8FAFC!important;color:#0F172A!important}
-        .jr:hover{background:#F8FAFC!important}
-        .post-btn{transition:background 0.12s}
-        .post-btn:hover{background:#4338CA!important}
-        ::-webkit-scrollbar{width:3px}
-        ::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:2px}
-      `}</style>
+    <div className="flex min-h-screen bg-slate-50 font-sans">
 
-      {/* ── Sidebar ── */}
-      <aside style={{ width:210, background:"#fff", borderRight:"0.5px solid #E2E8F0", display:"flex", flexDirection:"column", flexShrink:0, position:"sticky", top:0, height:"100vh", overflowY:"auto" }}>
-        <div style={{ padding:"18px 16px 12px", borderBottom:"0.5px solid #F1F5F9" }}>
-          <span style={{ fontSize:15, fontWeight:700, letterSpacing:"-0.03em", color:"#0F172A" }}>Hire<span style={{ color:"#4F46E5" }}>Flow</span></span>
-        </div>
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {company && (
-          <div style={{ margin:"10px 10px 4px", padding:"7px 12px", background:"#F0FDF4", borderRadius:8, fontSize:11, fontWeight:600, color:"#15803D" }}>
-            {company.name}
-          </div>
-        )}
-
-        <div style={{ padding:"14px 6px 4px" }}>
-          <div style={{ padding:"0 10px 6px", fontSize:9, fontWeight:600, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Main</div>
-          <SbLink href="/recruiter-dashboard" icon="grid"  label="Dashboard"  active />
-          <SbLink href="/recruiter-jobs"      icon="jobs" label="Jobs" badge={jobs.length} />
-          <SbLink href="/candidates"          icon="cands" label="Candidates" />
-          <SbLink href="/candidates"          icon="pipe"  label="Pipeline" />
-        </div>
-
-        <div style={{ padding:"10px 6px 4px" }}>
-          <div style={{ padding:"0 10px 6px", fontSize:9, fontWeight:600, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.08em" }}>Tools</div>
-          <SbLink href="/interview-prep" icon="clock"  label="Interview Prep" />
-          <SbLink href="/salary"         icon="salary" label="Salary Data" />
-          <SbLink href="/referrals"      icon="ref"    label="Referrals" />
-        </div>
-
-        <div style={{ marginTop:"auto", padding:"12px 6px", borderTop:"0.5px solid #F1F5F9" }}>
-          <SbLink href="/settings" icon="settings" label="Settings" />
-          <div style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 14px", marginTop:4 }}>
-            <div style={{ width:26, height:26, borderRadius:"50%", background:"#4F46E5", color:"#fff", fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-              {user?.full_name?.[0]?.toUpperCase() ?? "R"}
-            </div>
-            <div style={{ minWidth:0, flex:1 }}>
-              <p style={{ fontSize:11, fontWeight:600, color:"#0F172A", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{user?.full_name ?? "Recruiter"}</p>
-              <p style={{ fontSize:10, color:"#94A3B8", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{user?.email ?? ""}</p>
-            </div>
-            <button onClick={()=>{logout();router.push("/login");}} style={{ background:"none", border:"none", fontSize:10, color:"#94A3B8", cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
-              Out
-            </button>
-          </div>
-        </div>
+      {/* Sidebar */}
+      <aside className={`
+        fixed md:sticky top-0 h-screen z-40
+        w-[210px] bg-white border-r border-slate-200
+        flex flex-col shrink-0 overflow-y-auto
+        transition-transform duration-200 ease-in-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        md:translate-x-0
+      `}>
+        <button
+          className="absolute top-3 right-3 md:hidden text-slate-400 hover:text-slate-700 bg-transparent border-none cursor-pointer"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        >
+          <Icon t="close" />
+        </button>
+        <SidebarContent
+          company={company} jobs={jobs} user={user}
+          logout={logout} router={router}
+          onNavClick={() => setSidebarOpen(false)}
+        />
       </aside>
 
-      {/* ── Main content ── */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflowY:"auto" }}>
+      {/* Main */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
         {/* Topbar */}
-        <div style={{ background:"#fff", borderBottom:"0.5px solid #E2E8F0", padding:"0 24px", height:52, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:40 }}>
-          <p style={{ fontSize:13, fontWeight:600, color:"#0F172A" }}>{greeting}, {firstName}</p>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <Link href="/jobs/create" className="post-btn" style={{ background:"#4F46E5", color:"#fff", padding:"7px 16px", borderRadius:8, fontSize:12, fontWeight:600, textDecoration:"none" }}>
-              + Post Job
+        <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 md:px-6 h-[52px] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-800 cursor-pointer"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+            >
+              <Icon t="menu" />
+            </button>
+            <p className="text-[13px] font-semibold text-slate-900">
+              {greeting}, <span className="text-indigo-600">{firstName}</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/jobs/create"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs font-semibold no-underline transition-colors"
+            >
+              <span className="hidden sm:inline">+ Post Job</span>
+              <span className="sm:hidden">+ Post</span>
             </Link>
-            <div style={{ width:30, height:30, borderRadius:8, background:"#F8FAFC", border:"0.5px solid #E2E8F0", display:"flex", alignItems:"center", justifyContent:"center", position:"relative", cursor:"pointer" }}>
+            <div className="relative w-[30px] h-[30px] rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center cursor-pointer text-slate-500 hover:text-slate-800">
               <Icon t="bell" />
-              <div style={{ width:6, height:6, background:"#EF4444", borderRadius:"50%", position:"absolute", top:4, right:4 }} />
+              <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />
             </div>
           </div>
         </div>
 
-        <div style={{ padding:"20px 24px", flex:1 }}>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
 
-          {/* Stats */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:10, marginBottom:14 }}>
-            {[
-              { label:"Active Jobs",      value:stats?.active_jobs??0,      sub:"Open roles",        color:"#4F46E5" },
-              { label:"Total Applicants", value:stats?.total_applicants??0, sub:"Across all roles",  color:"#0F172A" },
-              { label:"In Pipeline",      value:inPipeline,                  sub:"Active candidates", color:"#7C3AED" },
-              { label:"Offers Out",       value:offers,                      sub:"Awaiting response", color:"#15803D" },
-            ].map(({ label, value, sub, color }) => (
-              <div key={label} style={{ background:"#fff", border:"0.5px solid #E2E8F0", borderRadius:12, padding:"14px 16px" }}>
-                <p style={{ fontSize:9, fontWeight:600, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:7 }}>{label}</p>
-                <p style={{ fontSize:24, fontWeight:700, color, letterSpacing:"-0.03em" }}>{value}</p>
-                <p style={{ fontSize:10, color:"#CBD5E1", marginTop:3 }}>{sub}</p>
+          {/* Stats — 2 cols on mobile, 4 on md+ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-4">
+            {statCards.map(({ label, value, sub, color }) => (
+              <div key={label} className="bg-white border border-slate-200 rounded-xl p-3.5 md:p-4">
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">{label}</p>
+                <p className={`text-2xl md:text-3xl font-bold tracking-tight ${color}`}>{value}</p>
+                <p className="text-[10px] text-slate-300 mt-1">{sub}</p>
               </div>
             ))}
           </div>
 
-          {/* Jobs table + pipeline */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 272px", gap:12, marginBottom:12 }}>
+          {/* Jobs table + pipeline — stack on mobile, side-by-side on lg+ */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-3 mb-3">
 
             {/* Jobs table */}
-            <div style={{ background:"#fff", border:"0.5px solid #E2E8F0", borderRadius:12, padding:"16px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                <p style={{ fontSize:13, fontWeight:600, color:"#0F172A" }}>Active Jobs</p>
-                <Link href="/candidates" style={{ fontSize:11, color:"#4F46E5", textDecoration:"none", fontWeight:500 }}>View all →</Link>
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <div className="flex justify-between items-center mb-3.5">
+                <p className="text-[13px] font-semibold text-slate-900">Active Jobs</p>
+                <Link href="/candidates" className="text-[11px] text-indigo-600 no-underline font-medium hover:text-indigo-700">
+                  View all →
+                </Link>
               </div>
+
               {jobs.length === 0 ? (
-                <div style={{ textAlign:"center", padding:"32px 0" }}>
-                  <p style={{ fontSize:13, color:"#94A3B8", marginBottom:12 }}>No jobs posted yet</p>
-                  <Link href="/jobs/create" style={{ fontSize:12, fontWeight:600, color:"#4F46E5", textDecoration:"none" }}>Post first job →</Link>
+                <div className="text-center py-8">
+                  <p className="text-[13px] text-slate-400 mb-3">No jobs posted yet</p>
+                  <Link href="/jobs/create" className="text-xs font-semibold text-indigo-600 no-underline hover:text-indigo-700">
+                    Post first job →
+                  </Link>
                 </div>
               ) : (
                 <>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 70px 50px 65px 80px", gap:8, padding:"0 8px 8px", borderBottom:"0.5px solid #F1F5F9" }}>
-                    {["Role","Applicants","New","Status",""].map(h=>(
-                      <p key={h} style={{ fontSize:9, fontWeight:600, color:"#94A3B8", textTransform:"uppercase", letterSpacing:"0.06em" }}>{h}</p>
+                  {/* Desktop table header — hidden on mobile */}
+                  <div className="hidden sm:grid sm:grid-cols-[1fr_70px_50px_65px_80px] gap-2 px-2 pb-2 border-b border-slate-50">
+                    {["Role","Applicants","New","Status",""].map(h => (
+                      <p key={h} className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">{h}</p>
                     ))}
                   </div>
-                  {jobs.map((job, i) => (
-                    <div key={job.id} className="jr" style={{ display:"grid", gridTemplateColumns:"1fr 70px 50px 65px 80px", gap:8, padding:"9px 8px", borderRadius:8, alignItems:"center", transition:"background 0.1s" }}>
-                      <div style={{ minWidth:0 }}>
-                        <p style={{ fontSize:12, fontWeight:600, color:"#0F172A", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{job.title}</p>
-                        <p style={{ fontSize:10, color:"#94A3B8", marginTop:1 }}>{job.location||"Remote"} · {job.job_type}</p>
+
+                  {jobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="
+                        flex flex-col sm:grid sm:grid-cols-[1fr_70px_50px_65px_80px]
+                        gap-1.5 sm:gap-2 px-2 py-2.5 rounded-lg
+                        hover:bg-slate-50 transition-colors items-start sm:items-center
+                        border-b border-slate-50 last:border-0
+                      "
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 truncate">{job.title}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{job.location || "Remote"} · {job.job_type}</p>
                       </div>
-                      <p style={{ fontSize:12, fontWeight:600, color:"#0F172A" }}>—</p>
-                      <p style={{ fontSize:12, fontWeight:600, color:"#4F46E5" }}>—</p>
-                      <span style={{ fontSize:9, fontWeight:600, padding:"2px 8px", borderRadius:10, background:"#F0FDF4", color:"#15803D", whiteSpace:"nowrap" }}>Live</span>
-                      <div style={{ display:"flex", gap:8 }}>
-                        <Link href={`/jobs/${job.id}/pipeline`} style={{ fontSize:10, color:"#4F46E5", fontWeight:500, textDecoration:"none" }}>View</Link>
-                        <span style={{ fontSize:10, color:"#94A3B8", cursor:"pointer" }}>Edit</span>
+                      {/* These columns are desktop-only */}
+                      <p className="hidden sm:block text-xs font-semibold text-slate-900">—</p>
+                      <p className="hidden sm:block text-xs font-semibold text-indigo-600">—</p>
+                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 whitespace-nowrap w-fit">
+                        Live
+                      </span>
+                      <div className="flex gap-3">
+                        <Link href={`/jobs/${job.id}/pipeline`} className="text-[10px] text-indigo-600 font-medium no-underline hover:text-indigo-700">
+                          View
+                        </Link>
+                        <span className="text-[10px] text-slate-400 cursor-pointer hover:text-slate-600">Edit</span>
                       </div>
                     </div>
                   ))}
@@ -263,42 +359,49 @@ export default function RecruiterDashboardPage() {
             </div>
 
             {/* Pipeline breakdown */}
-            <div style={{ background:"#fff", border:"0.5px solid #E2E8F0", borderRadius:12, padding:"16px" }}>
-              <p style={{ fontSize:13, fontWeight:600, color:"#0F172A", marginBottom:14 }}>Pipeline</p>
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <p className="text-[13px] font-semibold text-slate-900 mb-3.5">Pipeline</p>
               {PIPELINE_STAGES.map(({ key, label }) => {
-                const count = bd[key] ?? 0;
-                const pct   = maxVal > 0 ? (count / maxVal) * 100 : 0;
+                const count  = bd[key] ?? 0;
+                const pct    = maxVal > 0 ? (count / maxVal) * 100 : 0;
                 const isGood = key === "selected" || key === "offer";
                 return (
-                  <div key={key} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <p style={{ fontSize:10, color:"#64748B", width:76, flexShrink:0 }}>{label}</p>
-                    <div style={{ flex:1, height:6, background:"#F1F5F9", borderRadius:3, overflow:"hidden" }}>
-                      <div style={{ width:`${Math.max(pct, count>0?3:0)}%`, height:"100%", background: isGood?"#15803D":"#4F46E5", borderRadius:3, transition:"width 0.6s ease" }} />
+                  <div key={key} className="flex items-center gap-2 mb-2.5">
+                    <p className="text-[10px] text-slate-500 w-20 shrink-0">{label}</p>
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${isGood ? "bg-green-600" : "bg-indigo-500"}`}
+                        style={{ width: `${Math.max(pct, count > 0 ? 3 : 0)}%` }}
+                      />
                     </div>
-                    <p style={{ fontSize:10, fontWeight:600, color:"#0F172A", width:18, textAlign:"right", flexShrink:0 }}>{count}</p>
+                    <p className="text-[10px] font-semibold text-slate-900 w-4 text-right shrink-0">{count}</p>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Activity + top candidates */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          {/* Activity + Top Candidates — stack on mobile, side-by-side on md+ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-            <div style={{ background:"#fff", border:"0.5px solid #E2E8F0", borderRadius:12, padding:"16px" }}>
-              <p style={{ fontSize:13, fontWeight:600, color:"#0F172A", marginBottom:14 }}>Recent Activity</p>
+            {/* Recent Activity */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <p className="text-[13px] font-semibold text-slate-900 mb-3.5">Recent Activity</p>
               {activity.length === 0 ? (
-                <p style={{ fontSize:12, color:"#94A3B8", textAlign:"center", padding:"24px 0" }}>No activity yet — post a job to get started</p>
+                <p className="text-xs text-slate-400 text-center py-6">No activity yet — post a job to get started</p>
               ) : (
-                <div style={{ display:"flex", flexDirection:"column" }}>
-                  {activity.map((a, i) => (
-                    <div key={a.id} style={{ display:"flex", gap:10, padding:"10px 0", borderBottom: i < activity.length-1 ? "0.5px solid #F8FAFC":"none" }}>
-                      <div style={{ width:28, height:28, borderRadius:"50%", background:a.color.bg, color:a.color.text, fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <div className="flex flex-col divide-y divide-slate-50">
+                  {activity.map((a) => (
+                    <div key={a.id} className="flex gap-2.5 py-2.5">
+                      <div
+                        className="w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0"
+                        style={{ background: a.color.bg, color: a.color.text }}
+                      >
                         {a.initials}
                       </div>
                       <div>
-                        <p style={{ fontSize:12, color:"#374151", lineHeight:1.4 }}>{a.msg}</p>
-                        <p style={{ fontSize:10, color:"#94A3B8", marginTop:2 }}>{a.time}</p>
+                        <p className="text-xs text-slate-600 leading-snug">{a.msg}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{a.time}</p>
                       </div>
                     </div>
                   ))}
@@ -306,27 +409,36 @@ export default function RecruiterDashboardPage() {
               )}
             </div>
 
-            <div style={{ background:"#fff", border:"0.5px solid #E2E8F0", borderRadius:12, padding:"16px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                <p style={{ fontSize:13, fontWeight:600, color:"#0F172A" }}>Top Candidates</p>
-                <Link href="/candidates" style={{ fontSize:11, color:"#4F46E5", textDecoration:"none", fontWeight:500 }}>View all →</Link>
+            {/* Top Candidates */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <div className="flex justify-between items-center mb-3.5">
+                <p className="text-[13px] font-semibold text-slate-900">Top Candidates</p>
+                <Link href="/candidates" className="text-[11px] text-indigo-600 no-underline font-medium hover:text-indigo-700">
+                  View all →
+                </Link>
               </div>
               {jobs.length === 0 ? (
-                <p style={{ fontSize:12, color:"#94A3B8", textAlign:"center", padding:"24px 0" }}>Post a job to see candidates</p>
+                <p className="text-xs text-slate-400 text-center py-6">Post a job to see candidates</p>
               ) : (
-                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                <div className="flex flex-col gap-2">
                   {topCands.map((c) => {
                     const col = pickColor(c.name);
                     return (
-                      <div key={c.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 10px", background:"#F8FAFC", borderRadius:9 }}>
-                        <div style={{ width:28, height:28, borderRadius:"50%", background:col.bg, color:col.text, fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                      <div key={c.name} className="flex items-center gap-2.5 px-2.5 py-2 bg-slate-50 rounded-lg">
+                        <div
+                          className="w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0"
+                          style={{ background: col.bg, color: col.text }}
+                        >
                           {getInitials(c.name)}
                         </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <p style={{ fontSize:12, fontWeight:600, color:"#0F172A", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</p>
-                          <p style={{ fontSize:10, color:"#94A3B8", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.role}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-slate-900 truncate">{c.name}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{c.role}</p>
                         </div>
-                        <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:10, flexShrink:0, background:c.score>=80?"#F0FDF4":"#FFFBEB", color:c.score>=80?"#15803D":"#D97706" }}>
+                        <span className={`
+                          text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0
+                          ${c.score >= 80 ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-600"}
+                        `}>
                           {c.score}%
                         </span>
                       </div>
@@ -342,16 +454,23 @@ export default function RecruiterDashboardPage() {
   );
 }
 
+/* ─── Skeleton ───────────────────────────────────────── */
 function Skeleton() {
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#F8FAFC", fontFamily:"'DM Sans',sans-serif" }}>
-      <div style={{ width:210, background:"#fff", borderRight:"0.5px solid #E2E8F0" }} />
-      <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:18, fontWeight:700, color:"#0F172A", marginBottom:12 }}>Hire<span style={{ color:"#4F46E5" }}>Flow</span></div>
-          <div style={{ display:"flex", gap:5, justifyContent:"center" }}>
-            {[0,1,2].map(i=>(
-              <div key={i} style={{ width:7, height:7, borderRadius:"50%", background:"#4F46E5", opacity:0.4, animation:"pulse 1s infinite", animationDelay:`${i*0.15}s` }} />
+    <div className="flex min-h-screen bg-slate-50 font-sans">
+      <div className="hidden md:block w-[210px] bg-white border-r border-slate-200 shrink-0" />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-bold text-slate-900 mb-3">
+            Hire<span className="text-indigo-600">Flow</span>
+          </p>
+          <div className="flex gap-1.5 justify-center">
+            {[0,1,2].map(i => (
+              <div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
             ))}
           </div>
         </div>
