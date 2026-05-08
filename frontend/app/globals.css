@@ -1,66 +1,226 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ============================================================
+   PATH: frontend/app/globals.css  — ADD THESE AT THE BOTTOM
+   HireFlow Mobile-Responsive Styles
+   Desktop layout is preserved. Mobile gets Naukri-style UX.
+   ============================================================ */
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* ── Bottom Navigation (mobile only) ── */
+.mobile-bottom-nav {
+  display: none;
 }
 
-html, body {
-  height: 100%;
+/* ── Mobile Top Bar ── */
+.mobile-topbar {
+  display: none;
+}
+
+/* ── Hide desktop nav on mobile ── */
+@media (max-width: 768px) {
+
+  /* Show mobile bottom nav */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  /* Show mobile topbar */
+  .mobile-topbar {
+    display: flex;
+  }
+
+  /* Hide desktop nav on mobile */
+  .desktop-nav-bar {
+    display: none !important;
+  }
+
+  /* Add bottom padding so content isn't hidden behind bottom nav */
+  .page-content {
+    padding-bottom: 80px !important;
+  }
+
+  /* Dashboard grid: collapse to single column */
+  .dashboard-grid-3col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard metric cards: 2 per row on mobile */
+  .metric-cards-5col {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Jobs grid: single column on mobile */
+  .jobs-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero section adjustments */
+  .hero-btns {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .hero-btns a {
+    text-align: center !important;
+  }
+  .stats-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .steps-grid,
+  .howto-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .cta-banner {
+    margin: 0 12px 60px !important;
+    padding: 40px 20px !important;
+  }
+  .cta-btns {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .cta-btns a {
+    text-align: center !important;
+  }
+  .footer-inner {
+    flex-direction: column !important;
+    gap: 14px !important;
+    text-align: center !important;
+  }
+
+  /* Dashboard hero row */
+  .dashboard-hero-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .dashboard-hero-row > div:last-child {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .dashboard-hero-row > div:last-child a {
+    flex: 1 !important;
+    text-align: center !important;
+  }
+
+  /* Right column widgets: show inline on mobile below center */
+  .dashboard-right-col {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Filter bar: stack on mobile */
+  .filter-bar {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .filter-bar input,
+  .filter-bar select {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  /* Landing hero */
+  .hero-section {
+    padding: 90px 20px 60px !important;
+  }
+  .features-section,
+  .themes-section,
+  .howto-section {
+    padding: 60px 20px !important;
+  }
+  .nav-inner {
+    padding: 14px 20px !important;
+  }
+}
+
+/* ── Bottom nav item styles ── */
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 12px;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 500;
   font-family: 'DM Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-width: 52px;
+}
+.bottom-nav-item.active {
+  color: #2563eb;
+}
+.bottom-nav-item svg {
+  width: 22px;
+  height: 22px;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Mobile search bar ── */
+.mobile-search-bar {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  gap: 8px;
+  flex: 1;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
-}
-
-/* Focus visible only on keyboard nav */
-:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-:focus:not(:focus-visible) {
+.mobile-search-bar input {
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #0f172a;
+  width: 100%;
   outline: none;
+  font-family: 'DM Sans', sans-serif;
+}
+.mobile-search-bar input::placeholder {
+  color: #94a3b8;
 }
 
-/* Input range reset for cross-browser */
-input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  border-radius: 2px;
-  background: #e2e8f0;
-  cursor: pointer;
-}
-input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #2563eb;
-  cursor: pointer;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+/* ── Mobile card styles ── */
+.mobile-stat-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
 }
 
-/* Button reset */
-button {
-  font-family: inherit;
-  cursor: pointer;
+/* ── Mobile section header ── */
+.mobile-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.mobile-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+.mobile-section-link {
+  font-size: 13px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
 }

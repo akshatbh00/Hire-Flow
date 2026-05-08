@@ -1,3 +1,4 @@
+//frontend/app/layout.tsx
 import type { Metadata } from "next";
 import KarenWidget from "@/components/karen/karen-widget";
 import "./globals.css";
