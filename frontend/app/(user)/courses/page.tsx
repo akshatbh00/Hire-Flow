@@ -1,8 +1,10 @@
+// frontend/app/(user)/courses/page.tsx
 "use client";
 
 import { useState } from "react";
 import { coursesApi } from "@/lib/api";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 const SKILL_CATEGORIES = [
   { label: "Programming",    skills: ["Python", "JavaScript", "TypeScript", "Java", "Go", "Rust"] },
@@ -47,7 +49,42 @@ export default function CoursesPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <style>{`
+        .mobile-topbar { display: none; }
+        .mobile-bottom-nav { display: none; }
+
+        @media (max-width: 768px) {
+          .mobile-topbar { display: flex; }
+          .mobile-bottom-nav { display: flex; }
+          .desktop-nav-bar { display: none !important; }
+
+          .courses-main {
+            padding: 16px 16px 88px !important;
+          }
+
+          .courses-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .courses-actions-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .courses-actions-row > div {
+            flex-direction: column !important;
+            width: 100% !important;
+          }
+
+          .courses-actions-row button {
+            width: 100% !important;
+          }
+        }
+      `}</style>
+
+      <MobileTopBar />
+
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, color: "#0f172a" }}>Hire<span style={{ color: "#2563eb" }}>Flow</span></span>
         </Link>
@@ -58,7 +95,7 @@ export default function CoursesPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 40px" }}>
+      <main className="courses-main" style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 40px" }}>
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>Course Recommendations</h1>
           <p style={{ color: "#64748b", fontSize: 14, marginTop: 4 }}>Google, IBM, Microsoft & Meta certified courses for your skill gaps</p>
@@ -80,7 +117,7 @@ export default function CoursesPage() {
               </div>
             </div>
           ))}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+          <div className="courses-actions-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
             <p style={{ fontSize: 13, color: "#64748b" }}>{selected.length} skill{selected.length !== 1 ? "s" : ""} selected</p>
             <div style={{ display: "flex", gap: 10 }}>
               {selected.length > 0 && (
@@ -106,7 +143,7 @@ export default function CoursesPage() {
           ) : (
             <>
               <p style={{ fontSize: 13, color: "#64748b", marginBottom: 14 }}>{courses.length} courses found</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
+              <div className="courses-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
                 {courses.map((c: any, i: number) => {
                   const cfg = PROVIDER_COLORS[c.provider] ?? { bg: "#f8fafc", color: "#475569" };
                   return (
@@ -136,13 +173,15 @@ export default function CoursesPage() {
         )}
 
         {loading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
+          <div className="courses-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 14 }}>
             {[1,2,3,4].map(i => (
               <div key={i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, height: 140 }} />
             ))}
           </div>
         )}
       </main>
+
+      <MobileBottomNav active="home" />
     </div>
   );
 }

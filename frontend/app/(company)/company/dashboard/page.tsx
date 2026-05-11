@@ -1,5 +1,5 @@
-"use client";
 // frontend/app/(company)/company/dashboard/page.tsx
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -113,9 +113,51 @@ export default function CompanyDashboardPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        .mobile-topbar { display: none; }
+        .mobile-bottom-nav { display: none; }
+
+        @media (max-width: 768px) {
+          .desktop-nav-bar { display: none !important; }
+
+          .company-dash-main {
+            padding: 16px 16px 32px !important;
+          }
+
+          .dash-header-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+
+          .dash-header-row > div:last-child {
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .dash-header-row > div:last-child a {
+            width: 100% !important;
+            text-align: center !important;
+          }
+
+          .stats-grid-4 {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+
+          .main-content-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+      `}</style>
 
       {/* Nav */}
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/company/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>
             Hire<span style={{ color: "#2563eb" }}>Flow</span>
@@ -150,10 +192,43 @@ export default function CompanyDashboardPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 40px" }}>
+      {/* Mobile top bar */}
+      <div style={{ display: "none" }} className="mobile-topbar-company" />
+      <style>{`
+        @media (max-width: 768px) {
+          .mobile-topbar-company {
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            height: 52px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+          }
+        }
+      `}</style>
+      <div className="mobile-topbar-company">
+        <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>
+          Hire<span style={{ color: "#2563eb" }}>Flow</span>
+        </span>
+        {company && (
+          <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" }}>
+            {company.name}
+          </span>
+        )}
+        <button onClick={() => { logout(); router.push("/login"); }}
+          style={{ background: "none", border: "none", fontSize: 13, color: "#94a3b8", cursor: "pointer", fontFamily: "inherit" }}>
+          Sign out
+        </button>
+      </div>
+
+      <main className="company-dash-main" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 40px" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div className="dash-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>
               Company Dashboard
@@ -176,7 +251,7 @@ export default function CompanyDashboardPage() {
 
         {/* Stats — Hiring */}
         <p style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Hiring Overview</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 28 }}>
+        <div className="stats-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 28 }}>
           <StatCard label="Active Jobs" value={stats?.active_jobs ?? 0} sub="Open roles" color="#2563eb" />
           <StatCard label="Total Applicants" value={stats?.total_applicants ?? 0} sub="Across all roles" color="#0f172a" />
           <StatCard label="In Pipeline" value={inPipeline} sub="Active candidates" color="#7c3aed" />
@@ -185,7 +260,7 @@ export default function CompanyDashboardPage() {
 
         {/* Stats — HRMS */}
         <p style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>HRMS Overview</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 28 }}>
+        <div className="stats-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 28 }}>
           <StatCard label="Team Members" value={activeMembers} sub="Active staff" color="#0f172a" />
           <StatCard label="Hiring Managers" value={hiringManagers} sub="Managing pipelines" color="#ea580c" />
           <StatCard label="HR Members" value={hrs} sub="Handling candidates" color="#2563eb" />
@@ -193,7 +268,7 @@ export default function CompanyDashboardPage() {
         </div>
 
         {/* Main grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
+        <div className="main-content-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20, marginBottom: 20 }}>
 
           {/* Active Jobs */}
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "24px" }}>
@@ -262,7 +337,7 @@ export default function CompanyDashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 14 }}>
+        <div className="quick-actions-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 14 }}>
           {[
             { href: "/jobs/create",    icon: "📋", label: "Post a Job",       desc: "Create a new listing" },
             { href: "/admin/hrms",     icon: "👥", label: "Manage HRMS",      desc: "Team & hierarchy" },

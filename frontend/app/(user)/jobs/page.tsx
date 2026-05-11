@@ -165,11 +165,7 @@ export default function JobsPage() {
       `}</style>
 
       {/* ── Mobile Top Bar (with search) ── */}
-      <MobileTopBar
-        showSearch
-        searchPlaceholder="Search jobs, companies..."
-        onSearch={setSearch}
-      />
+      <MobileTopBar />
 
       {/* ── Desktop Nav ── */}
       <nav className="desktop-nav-bar" style={{

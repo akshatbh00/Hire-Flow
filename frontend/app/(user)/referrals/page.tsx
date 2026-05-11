@@ -1,8 +1,10 @@
-"use client";
 // frontend/app/(user)/referrals/page.tsx
+"use client";
+
 import { useEffect, useState } from "react";
 import { referralsApi, jobsApi, JobOut } from "@/lib/api";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
   pending:   { bg: "#FFFBEB", color: "#92400E", label: "Pending" },
@@ -16,7 +18,6 @@ export default function ReferralsPage() {
   const [loading,   setLoading]   = useState(true);
   const [copied,    setCopied]    = useState<string | null>(null);
 
-  // Generate referral
   const [jobs,      setJobs]      = useState<JobOut[]>([]);
   const [search,    setSearch]    = useState("");
   const [searching, setSearching] = useState(false);
@@ -55,7 +56,6 @@ export default function ReferralsPage() {
   }
 
   function copy(url: string, id: string) {
-    // Fix localhost port
     const fixedUrl = url.replace("localhost:3000", "localhost:3001");
     navigator.clipboard.writeText(fixedUrl);
     setCopied(id);
@@ -74,10 +74,53 @@ export default function ReferralsPage() {
         .ref-card{transition:border-color 0.12s}
         .ref-card:hover{border-color:#C7D7FE!important}
         .copy-btn{transition:all 0.12s}
+
+        .mobile-topbar { display: none; }
+        .mobile-bottom-nav { display: none; }
+
+        @media (max-width: 768px) {
+          .mobile-topbar { display: flex; }
+          .mobile-bottom-nav { display: flex; }
+          .desktop-nav-bar { display: none !important; }
+
+          .referrals-main {
+            padding: 16px 16px 88px !important;
+          }
+
+          .referrals-header-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          .referrals-header-row button {
+            width: 100% !important;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+
+          .how-it-works-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .ref-card-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+
+          .ref-card-actions {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+        }
       `}</style>
 
+      <MobileTopBar />
+
       {/* Nav */}
-      <nav style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 20px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 20px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.03em", color: "#0F172A" }}>
             Hire<span style={{ color: "#4F46E5" }}>Flow</span>
@@ -100,10 +143,10 @@ export default function ReferralsPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 860, margin: "0 auto", padding: "24px 16px", width: "100%" }}>
+      <main className="referrals-main" style={{ maxWidth: 860, margin: "0 auto", padding: "24px 16px", width: "100%" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <div className="referrals-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.03em" }}>Referral Links</h1>
             <p style={{ color: "#94A3B8", fontSize: 13, marginTop: 3 }}>Share jobs and earn rewards when candidates get hired</p>
@@ -164,7 +207,7 @@ export default function ReferralsPage() {
 
         {/* Stats */}
         {stats && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10, marginBottom: 18 }}>
+          <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10, marginBottom: 18 }}>
             {[
               { label: "Total Referrals", value: stats.total      ?? 0, color: "#4F46E5" },
               { label: "Completed",       value: stats.completed  ?? 0, color: "#15803D" },
@@ -181,7 +224,7 @@ export default function ReferralsPage() {
         {/* How it works */}
         <div style={{ background: "linear-gradient(135deg, #EEF2FF, #F0FDF4)", border: "1px solid #C7D7FE", borderRadius: 14, padding: "16px 20px", marginBottom: 20 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "#4338CA", marginBottom: 12 }}>✦ How Referrals Work</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+          <div className="how-it-works-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
             {[
               { step: "1", text: "Search a job above and generate your personal referral link" },
               { step: "2", text: "Share the link with friends or on social media" },
@@ -211,27 +254,29 @@ export default function ReferralsPage() {
               const cfg = STATUS_CONFIG[ref.status] ?? STATUS_CONFIG.pending;
               const url = (ref.referral_url ?? "").replace("localhost:3000", "localhost:3001");
               return (
-                <div key={ref.id} className="ref-card" style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3 }}>
-                      Code: <span style={{ color: "#4F46E5", fontFamily: "monospace" }}>{ref.referral_code}</span>
-                    </p>
-                    <p style={{ fontSize: 11, color: "#94A3B8", wordBreak: "break-all" }}>{url}</p>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 20, background: cfg.bg, color: cfg.color }}>
-                      {cfg.label}
-                    </span>
-                    <button className="copy-btn" onClick={() => copy(url, ref.id)} style={{
-                      padding: "6px 14px",
-                      background: copied === ref.id ? "#F0FDF4" : "#EEF2FF",
-                      color:      copied === ref.id ? "#15803D" : "#4F46E5",
-                      border:     `1px solid ${copied === ref.id ? "#BBF7D0" : "#C7D7FE"}`,
-                      borderRadius: 8, fontSize: 12, fontWeight: 600,
-                      cursor: "pointer", fontFamily: "inherit",
-                    }}>
-                      {copied === ref.id ? "Copied ✓" : "Copy"}
-                    </button>
+                <div key={ref.id} className="ref-card" style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 18px" }}>
+                  <div className="ref-card-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 3 }}>
+                        Code: <span style={{ color: "#4F46E5", fontFamily: "monospace" }}>{ref.referral_code}</span>
+                      </p>
+                      <p style={{ fontSize: 11, color: "#94A3B8", wordBreak: "break-all" }}>{url}</p>
+                    </div>
+                    <div className="ref-card-actions" style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 20, background: cfg.bg, color: cfg.color }}>
+                        {cfg.label}
+                      </span>
+                      <button className="copy-btn" onClick={() => copy(url, ref.id)} style={{
+                        padding: "6px 14px",
+                        background: copied === ref.id ? "#F0FDF4" : "#EEF2FF",
+                        color:      copied === ref.id ? "#15803D" : "#4F46E5",
+                        border:     `1px solid ${copied === ref.id ? "#BBF7D0" : "#C7D7FE"}`,
+                        borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>
+                        {copied === ref.id ? "Copied ✓" : "Copy"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -239,6 +284,8 @@ export default function ReferralsPage() {
           </div>
         )}
       </main>
+
+      <MobileBottomNav active="home" />
     </div>
   );
 }

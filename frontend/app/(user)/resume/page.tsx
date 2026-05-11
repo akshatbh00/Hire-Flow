@@ -1,9 +1,10 @@
 "use client";
-//frontend/app/(user)/resume/page.tsx
+// frontend/app/(user)/resume/page.tsx
 import { useEffect, useState, useRef } from "react";
 import { resumeApi, ResumeOut } from "@/lib/api";
 import AtsScoreDisplay from "@/components/resume/ats-score-display";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 export default function ResumePage() {
   const [resume,    setResume]    = useState<ResumeOut | null>(null);
@@ -39,9 +40,37 @@ export default function ResumePage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      {/* Nav */}
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+        /* ── Mobile overrides ── */
+        @media (max-width: 768px) {
+          .desktop-nav-bar   { display: none !important; }
+          .mobile-topbar     { display: flex !important; }
+          .mobile-bottom-nav { display: flex !important; }
+          .resume-main       { padding: 16px 14px 88px !important; }
+          .resume-grid       { grid-template-columns: 1fr !important; }
+          .resume-header     { flex-direction: column !important; gap: 12px !important; align-items: flex-start !important; }
+          .resume-header h1  { font-size: 20px !important; }
+          .resume-upload-btn { width: 100% !important; }
+        }
+        @media (min-width: 769px) {
+          .mobile-topbar     { display: none !important; }
+          .mobile-bottom-nav { display: none !important; }
+        }
+      `}</style>
+
+      {/* Mobile Top Bar */}
+      <MobileTopBar />
+
+      {/* Desktop Nav */}
+      <nav className="desktop-nav-bar" style={{
+        background: "#fff", borderBottom: "1px solid #e2e8f0",
+        padding: "0 40px", height: 60,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        position: "sticky", top: 0, zIndex: 50,
+      }}>
         <Link href="/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>
             Hire<span style={{ color: "#2563eb" }}>Flow</span>
@@ -54,33 +83,43 @@ export default function ResumePage() {
             { href: "/applications", label: "Applications" },
             { href: "/resume",       label: "Resume", active: true },
           ].map((l) => (
-            <Link key={l.href} href={l.href} style={{ fontSize: 14, fontWeight: l.active ? 600 : 400, color: l.active ? "#2563eb" : "#64748b", textDecoration: "none" }}>
+            <Link key={l.href} href={l.href} style={{
+              fontSize: 14, fontWeight: l.active ? 600 : 400,
+              color: l.active ? "#2563eb" : "#64748b", textDecoration: "none",
+            }}>
               {l.label}
             </Link>
           ))}
         </div>
       </nav>
 
-      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 40px" }}>
+      <main className="resume-main" style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 40px" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+        <div className="resume-header" style={{
+          display: "flex", justifyContent: "space-between",
+          alignItems: "flex-start", marginBottom: 28,
+        }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>My Resume</h1>
             <p style={{ color: "#64748b", fontSize: 14, marginTop: 4 }}>AI analysis + ATS report</p>
           </div>
           <div>
             <input
-              ref={inputRef}
-              type="file"
-              accept=".pdf,.docx"
+              ref={inputRef} type="file" accept=".pdf,.docx"
               style={{ display: "none" }}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
             />
             <button
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              style={{ padding: "10px 20px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 13, fontWeight: 500, color: "#374151", background: "#fff", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+              className="resume-upload-btn"
+              style={{
+                padding: "10px 20px", border: "1px solid #e2e8f0",
+                borderRadius: 10, fontSize: 13, fontWeight: 500,
+                color: "#374151", background: "#fff",
+                cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+              }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#2563eb"; (e.currentTarget as HTMLElement).style.color = "#2563eb"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0"; (e.currentTarget as HTMLElement).style.color = "#374151"; }}
             >
@@ -90,7 +129,7 @@ export default function ResumePage() {
         </div>
 
         {loading ? (
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
+          <div className="resume-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
             {[1, 2, 3].map((i) => (
               <div key={i} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, height: 180 }} />
             ))}
@@ -102,7 +141,13 @@ export default function ResumePage() {
             onDragLeave={()  => setDragging(false)}
             onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleUpload(f); }}
             onClick={() => inputRef.current?.click()}
-            style={{ border: `2px dashed ${dragging ? "#2563eb" : "#e2e8f0"}`, borderRadius: 16, padding: "80px 40px", textAlign: "center", cursor: "pointer", background: dragging ? "#eff6ff" : "#fff", transition: "all 0.2s" }}
+            style={{
+              border: `2px dashed ${dragging ? "#2563eb" : "#e2e8f0"}`,
+              borderRadius: 16, padding: "80px 40px",
+              textAlign: "center", cursor: "pointer",
+              background: dragging ? "#eff6ff" : "#fff",
+              transition: "all 0.2s",
+            }}
           >
             <p style={{ fontSize: 32, color: "#cbd5e1", marginBottom: 12 }}>↑</p>
             <p style={{ fontSize: 15, fontWeight: 500, color: "#64748b", marginBottom: 6 }}>Drop your resume or click to upload</p>
@@ -110,9 +155,9 @@ export default function ResumePage() {
           </div>
 
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
+          <div className="resume-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
 
-            {/* Left — parsed info */}
+            {/* Left */}
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Identity */}
@@ -193,17 +238,20 @@ export default function ResumePage() {
               )}
             </div>
 
-            {/* Right — ATS + actions */}
+            {/* Right */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
               {resume.ats_report && <AtsScoreDisplay report={resume.ats_report} />}
 
               {resume.file_url && (
                 
-                  <a href={resume.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: "block", textAlign: "center", padding: "12px", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 13, color: "#64748b", textDecoration: "none", background: "#fff", transition: "all 0.15s" }}
+                  href={resume.file_url} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: "block", textAlign: "center", padding: "12px",
+                    border: "1px solid #e2e8f0", borderRadius: 12,
+                    fontSize: 13, color: "#64748b", textDecoration: "none",
+                    background: "#fff", transition: "all 0.15s",
+                  }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#2563eb"; (e.currentTarget as HTMLElement).style.color = "#2563eb"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0"; (e.currentTarget as HTMLElement).style.color = "#64748b"; }}
                 >
@@ -216,10 +264,11 @@ export default function ResumePage() {
                 <p style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6, marginBottom: 16 }}>
                   Get exact section rewrites tailored to a specific job description.
                 </p>
-                <Link
-                  href="/jobs"
-                  style={{ display: "block", textAlign: "center", padding: "10px", background: "#2563eb", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: "none" }}
-                >
+                <Link href="/jobs" style={{
+                  display: "block", textAlign: "center", padding: "10px",
+                  background: "#2563eb", color: "#fff",
+                  borderRadius: 10, fontSize: 13, fontWeight: 600, textDecoration: "none",
+                }}>
                   Pick a Job to Tailor →
                 </Link>
               </div>
@@ -227,6 +276,9 @@ export default function ResumePage() {
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <MobileBottomNav active="profile" />
     </div>
   );
 }

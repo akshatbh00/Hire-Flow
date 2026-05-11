@@ -1,8 +1,9 @@
 "use client";
-
+// frontend/app/(user)/notifications/page.tsx
 import { useEffect, useState } from "react";
 import { usersApi } from "@/lib/api";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -29,7 +30,28 @@ export default function NotificationsPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        @media (max-width: 768px) {
+          .desktop-nav-bar    { display: none !important; }
+          .mobile-topbar      { display: flex !important; }
+          .mobile-bottom-nav  { display: flex !important; }
+          .notif-main         { padding: 16px 14px 88px !important; }
+          .notif-header h1    { font-size: 20px !important; }
+        }
+        @media (min-width: 769px) {
+          .mobile-topbar      { display: none !important; }
+          .mobile-bottom-nav  { display: none !important; }
+        }
+      `}</style>
+
+      {/* Mobile Top Bar */}
+      <MobileTopBar />
+
+      {/* Desktop Nav */}
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>Hire<span style={{ color: "#2563eb" }}>Flow</span></span>
         </Link>
@@ -40,8 +62,8 @@ export default function NotificationsPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 700, margin: "0 auto", padding: "32px 40px" }}>
-        <div style={{ marginBottom: 24 }}>
+      <main className="notif-main" style={{ maxWidth: 700, margin: "0 auto", padding: "32px 40px" }}>
+        <div className="notif-header" style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>Notifications</h1>
           <p style={{ color: "#64748b", fontSize: 14, marginTop: 4 }}>{notifications.length} total</p>
         </div>
@@ -84,6 +106,9 @@ export default function NotificationsPage() {
           </div>
         )}
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <MobileBottomNav active="home" />
     </div>
   );
 }

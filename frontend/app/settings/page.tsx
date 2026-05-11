@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { usersApi } from "@/lib/api";
 import { useUserStore } from "@/store/user.store";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 export default function SettingsPage() {
   const router        = useRouter();
@@ -40,9 +41,25 @@ export default function SettingsPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        .mobile-topbar { display: none; }
+        .mobile-bottom-nav { display: none; }
+
+        @media (max-width: 768px) {
+          .mobile-topbar { display: flex; }
+          .mobile-bottom-nav { display: flex; }
+          .desktop-nav-bar { display: none !important; }
+
+          .settings-main {
+            padding: 16px 16px 88px !important;
+          }
+        }
+      `}</style>
+
+      <MobileTopBar />
 
       {/* Nav */}
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href={dashboardHref} style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>
             Hire<span style={{ color: "#2563eb" }}>Flow</span>
@@ -56,7 +73,7 @@ export default function SettingsPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 40px" }}>
+      <main className="settings-main" style={{ maxWidth: 640, margin: "0 auto", padding: "32px 40px" }}>
 
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>Settings</h1>
@@ -144,6 +161,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+
+      <MobileBottomNav active="profile" />
     </div>
   );
 }

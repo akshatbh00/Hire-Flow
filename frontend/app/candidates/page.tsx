@@ -14,16 +14,18 @@ function Icon({ t }: { t: string }) {
   if (t === "jobs")     return <svg {...s} {...p}><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 7h6M5 10h4"/></svg>;
   if (t === "cands")    return <svg {...s} {...p}><circle cx="6" cy="5" r="3"/><path d="M1 13c0-2.761 2.239-5 5-5"/><circle cx="12" cy="10" r="2.5"/><path d="M10 12.5l1.5 1.5 2.5-2.5"/></svg>;
   if (t === "pipe")     return <svg {...s} {...p}><path d="M2 4h12M2 8h10M2 12h8"/></svg>;
-  if (t === "clock")    return <svg {...s} {...p}><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>;
-  if (t === "salary")   return <svg {...s} {...p}><path d="M8 2v12M5 5h4.5a2.5 2.5 0 010 5H5"/></svg>;
   if (t === "ref")      return <svg {...s} {...p}><path d="M10 8l4-4-4-4M14 4H6a4 4 0 000 8h1"/></svg>;
   if (t === "settings") return <svg {...s} {...p}><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></svg>;
+  if (t === "menu")     return <svg {...s} {...p}><path d="M1 4h14M1 8h14M1 12h14"/></svg>;
+  if (t === "close")    return <svg {...s} {...p}><path d="M2 2l12 12M14 2L2 14"/></svg>;
   return null;
 }
 
-function SbLink({ href, icon, label, active, badge }: { href: string; icon: string; label: string; active?: boolean; badge?: number }) {
+function SbLink({ href, icon, label, active, badge, onClick }: {
+  href: string; icon: string; label: string; active?: boolean; badge?: number; onClick?: () => void;
+}) {
   return (
-    <Link href={href} className="sb-lnk" style={{
+    <Link href={href} onClick={onClick} className="sb-lnk" style={{
       display: "flex", alignItems: "center", gap: 9,
       padding: "8px 14px", fontSize: 12, textDecoration: "none",
       color: active ? "#4F46E5" : "#64748B",
@@ -53,6 +55,7 @@ export default function CandidatesPage() {
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [loading,     setLoading]     = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -62,6 +65,12 @@ export default function CandidatesPage() {
       setCompany(c);
       setJobs(j as JobOut[]);
     }).finally(() => setLoadingJobs(false));
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth >= 768) setSidebarOpen(false); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   async function loadCandidates(jobId: string) {
@@ -89,10 +98,44 @@ export default function CandidatesPage() {
         .post-btn:hover{background:#4338CA!important}
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:2px}
+
+        @media (max-width: 768px) {
+          .cn-sidebar {
+            position: fixed !important;
+            top: 0; left: 0;
+            height: 100% !important;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+          }
+          .cn-sidebar.open {
+            transform: translateX(0);
+          }
+          .cn-mobile-topbar { display: flex !important; }
+          .cn-desktop-topbar { display: none !important; }
+          .cn-backdrop { display: block !important; }
+          .cn-content { padding: 16px !important; }
+          .cn-job-chips { gap: 6px !important; }
+          .cand-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
+      {/* ── Mobile Backdrop ── */}
+      <div
+        className="cn-backdrop"
+        onClick={() => setSidebarOpen(false)}
+        style={{ display: "none", position: "fixed", inset: 0, zIndex: 49, background: "rgba(0,0,0,0.3)" }}
+      />
+
       {/* ── Sidebar ── */}
-      <aside style={{ width: 210, background: "#fff", borderRight: "0.5px solid #E2E8F0", display: "flex", flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+      <aside
+        className={`cn-sidebar${sidebarOpen ? " open" : ""}`}
+        style={{
+          width: 210, background: "#fff", borderRight: "0.5px solid #E2E8F0",
+          display: "flex", flexDirection: "column", flexShrink: 0,
+          position: "sticky", top: 0, height: "100vh", overflowY: "auto",
+        }}
+      >
         <div style={{ padding: "18px 16px 12px", borderBottom: "0.5px solid #F1F5F9" }}>
           <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.03em", color: "#0F172A" }}>
             Hire<span style={{ color: "#4F46E5" }}>Flow</span>
@@ -105,17 +148,17 @@ export default function CandidatesPage() {
         )}
         <div style={{ padding: "14px 6px 4px" }}>
           <div style={{ padding: "0 10px 6px", fontSize: 9, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Main</div>
-          <SbLink href="/recruiter-dashboard" icon="grid"  label="Dashboard" />
-          <SbLink href="/recruiter-jobs"      icon="jobs"  label="Jobs"       badge={jobs.length} />
-          <SbLink href="/candidates"          icon="cands" label="Candidates" active />
-          <SbLink href="/candidates"          icon="pipe"  label="Pipeline" />
+          <SbLink href="/recruiter-dashboard" icon="grid"  label="Dashboard"  onClick={() => setSidebarOpen(false)} />
+          <SbLink href="/recruiter-jobs"      icon="jobs"  label="Jobs"        badge={jobs.length} onClick={() => setSidebarOpen(false)} />
+          <SbLink href="/candidates"          icon="cands" label="Candidates"  active onClick={() => setSidebarOpen(false)} />
+          <SbLink href="/candidates"          icon="pipe"  label="Pipeline"    onClick={() => setSidebarOpen(false)} />
         </div>
         <div style={{ padding: "10px 6px 4px" }}>
           <div style={{ padding: "0 10px 6px", fontSize: 9, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Tools</div>
-          <SbLink href="/referrals"      icon="ref"    label="Referrals" />
+          <SbLink href="/referrals" icon="ref" label="Referrals" onClick={() => setSidebarOpen(false)} />
         </div>
         <div style={{ marginTop: "auto", padding: "12px 6px", borderTop: "0.5px solid #F1F5F9" }}>
-          <SbLink href="/settings" icon="settings" label="Settings" />
+          <SbLink href="/settings" icon="settings" label="Settings" onClick={() => setSidebarOpen(false)} />
           <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 14px", marginTop: 4 }}>
             <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#4F46E5", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               {user?.full_name?.[0]?.toUpperCase() ?? "R"}
@@ -132,15 +175,44 @@ export default function CandidatesPage() {
       {/* ── Main ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
 
-        {/* Topbar */}
-        <div style={{ background: "#fff", borderBottom: "0.5px solid #E2E8F0", padding: "0 24px", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 40 }}>
+        {/* Mobile Topbar */}
+        <div
+          className="cn-mobile-topbar"
+          style={{
+            display: "none", background: "#fff", borderBottom: "0.5px solid #E2E8F0",
+            padding: "0 16px", height: 52, alignItems: "center",
+            justifyContent: "space-between", position: "sticky", top: 0, zIndex: 20,
+          }}
+        >
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 8, background: "#F8FAFC", border: "1px solid #E2E8F0", cursor: "pointer", color: "#64748B" }}
+          >
+            <Icon t="menu" />
+          </button>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#0F172A" }}>Candidates</span>
+          <Link href="/jobs/create" className="post-btn" style={{ background: "#4F46E5", color: "#fff", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+            + Post
+          </Link>
+        </div>
+
+        {/* Desktop Topbar */}
+        <div
+          className="cn-desktop-topbar"
+          style={{
+            background: "#fff", borderBottom: "0.5px solid #E2E8F0",
+            padding: "0 24px", height: 52, display: "flex",
+            alignItems: "center", justifyContent: "space-between",
+            position: "sticky", top: 0, zIndex: 20,
+          }}
+        >
           <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>Candidates</p>
           <Link href="/jobs/create" className="post-btn" style={{ background: "#4F46E5", color: "#fff", padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
             + Post Job
           </Link>
         </div>
 
-        <div style={{ padding: "20px 24px", flex: 1 }}>
+        <div className="cn-content" style={{ padding: "20px 24px", flex: 1 }}>
 
           {/* Header */}
           <div style={{ marginBottom: 18 }}>
@@ -163,7 +235,7 @@ export default function CandidatesPage() {
               </Link>
             </div>
           ) : (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+            <div className="cn-job-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
               {jobs.map((job) => (
                 <button
                   key={job.id}
@@ -191,7 +263,7 @@ export default function CandidatesPage() {
             </div>
 
           ) : loading ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+            <div className="cand-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} style={{ background: "#E2E8F0", borderRadius: 12, height: 120 }} />
               ))}
@@ -207,7 +279,7 @@ export default function CandidatesPage() {
               <p style={{ fontSize: 12, color: "#64748B", marginBottom: 14 }}>
                 <span style={{ fontWeight: 600, color: "#0F172A" }}>{candidates.length}</span> candidate{candidates.length !== 1 ? "s" : ""}
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+              <div className="cand-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
                 {candidates.map((c) => (
                   <Link key={c.user_id} href={`/candidates/${c.user_id}?job=${selectedJob}`} style={{ textDecoration: "none" }}>
                     <div className="cand-card" style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "15px 16px", cursor: "pointer" }}>

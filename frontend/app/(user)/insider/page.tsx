@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { insiderApi } from "@/lib/api";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 export default function InsiderPage() {
   const [tab,          setTab]          = useState<"find" | "requests" | "my-profile">("find");
@@ -70,7 +71,87 @@ export default function InsiderPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <style>{`
+        .mobile-topbar { display: none; }
+        .mobile-bottom-nav { display: none; }
+
+        @media (max-width: 768px) {
+          .mobile-topbar { display: flex; }
+          .mobile-bottom-nav { display: flex; }
+          .desktop-nav-bar { display: none !important; }
+
+          .insider-main {
+            padding: 16px 16px 88px !important;
+          }
+
+          .insider-search-row {
+            flex-direction: column !important;
+          }
+
+          .insider-search-row input {
+            width: 100% !important;
+          }
+
+          .insider-search-row button {
+            width: 100% !important;
+          }
+
+          .insider-card-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          .insider-card-actions {
+            width: 100% !important;
+            justify-content: flex-start !important;
+          }
+
+          .insider-card-actions button {
+            flex: 1 !important;
+          }
+
+          .pending-card-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+
+          .pending-card-buttons {
+            display: flex !important;
+            width: 100% !important;
+          }
+
+          .pending-card-buttons button {
+            flex: 1 !important;
+          }
+
+          .tabs-row {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+
+          .tabs-row button {
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+          }
+
+          .workhistory-row {
+            flex-direction: column !important;
+          }
+
+          .workhistory-row input {
+            width: 100% !important;
+          }
+
+          .workhistory-row button {
+            width: 100% !important;
+          }
+        }
+      `}</style>
+
+      <MobileTopBar />
+
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>Hire<span style={{ color: "#2563eb" }}>Flow</span></span>
         </Link>
@@ -81,14 +162,14 @@ export default function InsiderPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 40px" }}>
+      <main className="insider-main" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 40px" }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>Insider Network</h1>
           <p style={{ color: "#64748b", fontSize: 14, marginTop: 4 }}>Connect with professionals at your target companies and get referrals</p>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 0, borderBottom: "1px solid #e2e8f0", marginBottom: 24 }}>
+        <div className="tabs-row" style={{ display: "flex", gap: 0, borderBottom: "1px solid #e2e8f0", marginBottom: 24 }}>
           {[{ key: "find", label: "Find Insiders" }, { key: "requests", label: `My Requests (${myRequests.length})` }, { key: "my-profile", label: "My Insider Profile" }].map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key as any)}
               style={{ padding: "10px 20px", fontSize: 14, fontWeight: tab === key ? 600 : 400, color: tab === key ? "#2563eb" : "#64748b", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", borderBottom: `2px solid ${tab === key ? "#2563eb" : "transparent"}`, marginBottom: -1 }}>
@@ -103,7 +184,7 @@ export default function InsiderPage() {
         {/* Find Insiders */}
         {tab === "find" && (
           <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+            <div className="insider-search-row" style={{ display: "flex", gap: 10, marginBottom: 24 }}>
               <input value={company} onChange={(e) => setCompany(e.target.value)} onKeyDown={(e) => e.key === "Enter" && findInsiders()}
                 placeholder="Search by company e.g. Google, Stripe..."
                 style={{ flex: 1, padding: "10px 14px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", color: "#0f172a" }}
@@ -124,7 +205,7 @@ export default function InsiderPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {insiders.map((insider: any) => (
                 <div key={insider.user_id} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, padding: "18px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div className="insider-card-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#eff6ff", color: "#2563eb", fontSize: 16, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {insider.full_name?.[0]?.toUpperCase() ?? "?"}
@@ -134,10 +215,12 @@ export default function InsiderPage() {
                         <p style={{ fontSize: 13, color: "#64748b" }}>{insider.company_name} {insider.is_current ? "· Current" : "· Alumni"}</p>
                       </div>
                     </div>
-                    <button onClick={() => requestReferral(insider.user_id)}
-                      style={{ padding: "8px 18px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                      Request Referral
-                    </button>
+                    <div className="insider-card-actions" style={{ display: "flex" }}>
+                      <button onClick={() => requestReferral(insider.user_id)}
+                        style={{ padding: "8px 18px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        Request Referral
+                      </button>
+                    </div>
                   </div>
                   <textarea value={msg} onChange={(e) => setMsg(e.target.value)}
                     placeholder="Add a message with your referral request..."
@@ -158,12 +241,12 @@ export default function InsiderPage() {
                 <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 12 }}>Pending requests from others ({pending.length})</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {pending.map((r: any) => (
-                    <div key={r.id} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div key={r.id} className="pending-card-row" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", marginBottom: 3 }}>{r.requester_name ?? "Someone"}</p>
                         <p style={{ fontSize: 12, color: "#64748b" }}>{r.message}</p>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div className="pending-card-buttons" style={{ display: "flex", gap: 8 }}>
                         <button onClick={() => handleRequest(r.id, "accept")}
                           style={{ padding: "7px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                           Accept
@@ -210,7 +293,7 @@ export default function InsiderPage() {
             <p style={{ fontSize: 13, color: "#64748b", marginBottom: 20 }}>
               Add companies you've worked at to become visible as an insider. Other job seekers can then request referrals from you.
             </p>
-            <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+            <div className="workhistory-row" style={{ display: "flex", gap: 10, marginBottom: 14 }}>
               <input value={workCompany} onChange={(e) => setWorkCompany(e.target.value)}
                 placeholder="Company name e.g. Google, Stripe..."
                 style={{ flex: 1, padding: "10px 14px", border: "1px solid #e2e8f0", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", color: "#0f172a" }}
@@ -231,6 +314,8 @@ export default function InsiderPage() {
           </div>
         )}
       </main>
+
+      <MobileBottomNav active="home" />
     </div>
   );
 }

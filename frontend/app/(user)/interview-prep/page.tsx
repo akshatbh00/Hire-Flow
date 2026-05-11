@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { coursesApi } from "@/lib/api";
 import Link from "next/link";
+import MobileTopBar, { MobileBottomNav } from "@/components/mobile/MobileNav";
 
 const ROLES = [
   "Software Engineer", "Product Manager", "Data Scientist",
@@ -105,7 +106,28 @@ export default function InterviewPrepPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
-      <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+      <style>{`
+        .mobile-topbar { display: none; }
+        .mobile-bottom-nav { display: none; }
+
+        @media (max-width: 768px) {
+          .mobile-topbar { display: flex; }
+          .mobile-bottom-nav { display: flex; }
+          .desktop-nav-bar { display: none !important; }
+
+          .interview-main {
+            padding: 16px 16px 88px !important;
+          }
+
+          .interview-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
+      <MobileTopBar />
+
+      <nav className="desktop-nav-bar" style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 40px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/dashboard" style={{ textDecoration: "none" }}>
           <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f172a" }}>Hire<span style={{ color: "#2563eb" }}>Flow</span></span>
         </Link>
@@ -116,7 +138,7 @@ export default function InterviewPrepPage() {
         </div>
       </nav>
 
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 40px" }}>
+      <main className="interview-main" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 40px" }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#0f172a", letterSpacing: "-0.02em" }}>Interview Prep</h1>
           <p style={{ color: "#64748b", fontSize: 14, marginTop: 4 }}>Practice questions and tips for your target role</p>
@@ -132,7 +154,7 @@ export default function InterviewPrepPage() {
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20 }}>
+        <div className="interview-grid" style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20 }}>
 
           {/* Questions */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -195,6 +217,8 @@ export default function InterviewPrepPage() {
           </div>
         </div>
       </main>
+
+      <MobileBottomNav active="home" />
     </div>
   );
 }

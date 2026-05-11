@@ -1,5 +1,5 @@
 "use client";
-
+//frontend/app/(auth)/onboarding/page.tsx
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, companyApi } from "@/lib/api";
