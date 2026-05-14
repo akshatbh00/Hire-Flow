@@ -6,7 +6,7 @@ import KarenWidget from "@/components/karen/karen-widget";
 import MobileShell from "@/components/mobile/MobileShell";
 import "./globals.css";
 import ThemeProvider from "@/components/ui/theme-provider";
-
+import KarenClientWrapper from "@/components/karen/KarenClientWrapper";
 export const metadata: Metadata = {
   title: "HireFlow — Transparent Hiring for Everyone",
   description: "AI-powered hiring portal. Full pipeline transparency. No black boxes.",
@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             children
           )}
         </ThemeProvider>
-        {!isMobile && <KarenWidget />}
+        {!isMobile && <KarenClientWrapper />}
       </body>
     </html>
   );

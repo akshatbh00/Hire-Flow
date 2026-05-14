@@ -70,7 +70,7 @@ export const resumeApi = {
   upload: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
-    const token = localStorage.getItem("hf_token");
+    const token = typeof window !== "undefined" ? localStorage.getItem("hf_token") : null;
     return fetch(`${BASE}/resume/upload`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -156,11 +156,17 @@ export const premiumApi = {
 // ── KAREN ─────────────────────────────────────────────────────────────────────────────────────────────
 
 export const karenApi = {
-  chat: (message: string) =>
-    req<{ reply: string }>("/karen/chat", {
+  chat: (message: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("hf_token") : null;
+    return fetch(`${BASE}/karen/chat`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({ message }),
-    }),
+    }).then((r) => r.json()) as Promise<{ reply: string }>;
+  },
 };
 
 // ── Company ────────────────────────────────────────────────────────────────
