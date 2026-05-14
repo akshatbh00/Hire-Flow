@@ -18,7 +18,8 @@ async function req<T>(
   };
 
   if (auth) {
-    const token = localStorage.getItem("hf_token");
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("hf_token") : null;
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
