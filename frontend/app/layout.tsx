@@ -2,11 +2,12 @@
 // frontend/app/layout.tsx
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import KarenWidget from "@/components/karen/karen-widget";
+import KarenClientWrapper from "@/components/karen/KarenClientWrapper";
 import MobileShell from "@/components/mobile/MobileShell";
 import "./globals.css";
 import ThemeProvider from "@/components/ui/theme-provider";
 import KarenClientWrapper from "@/components/karen/KarenClientWrapper";
+
 export const metadata: Metadata = {
   title: "HireFlow — Transparent Hiring for Everyone",
   description: "AI-powered hiring portal. Full pipeline transparency. No black boxes.",

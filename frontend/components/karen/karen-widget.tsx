@@ -54,10 +54,10 @@ export default function KarenWidget() {
         ...prev,
         { role: "karen", text: res?.reply ?? (res as any)?.message ?? "Sorry, I didn't get that.", ts: new Date() },
       ]);
-    } catch {
+    } catch (e: any) {
       setMessages((prev) => [
         ...prev,
-        { role: "karen", text: "Something went wrong. Please try again.", ts: new Date() },
+        { role: "karen", text: e?.message ?? "Something went wrong. Please try again.", ts: new Date() },
       ]);
     } finally {
       setLoading(false);

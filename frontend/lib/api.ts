@@ -67,7 +67,7 @@ export const authApi = {
 // ── Resume ─────────────────────────────────────────────────────────────────
 
 export const resumeApi = {
-  upload: (file: File) => {
+upload: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
     const token = typeof window !== "undefined" ? localStorage.getItem("hf_token") : null;
