@@ -1,8 +1,20 @@
 """
-round_comparator.py — compares candidate vs people who cleared rounds
+ai/benchmark/round_comparator.py — compares candidate vs people who cleared rounds
 Gives granular advice:
   "To clear Round 1 → add these skills"
   "To get selected → add these skills"
+
+FIXES:
+- BUG 1: skill collection was issuing one db.query(Resume) per pool entry
+         per round — up to 30 queries × 5 rounds = 150 sequential DB
+         round-trips per compare() call. Replaced with a single batched
+         Resume.id.in_() query per round, matching the pattern already
+         used in comparator.py.
+- RISK 1: _cosine() returns 0.0 for zero-norm vectors (safe), but
+          np.mean(scores) returns nan when scores is non-empty but all
+          values are nan (e.g. all pool embeddings were zero vectors).
+          Added explicit nan filtering before mean so avg_similarity
+          never propagates NaN into the response JSON.
 """
 import numpy as np
 from sqlalchemy.orm import Session
@@ -11,7 +23,7 @@ from loguru import logger
 
 
 def _cosine(a: list, b: list) -> float:
-    a, b = np.array(a), np.array(b)
+    a, b = np.array(a, dtype=float), np.array(b, dtype=float)
     denom = np.linalg.norm(a) * np.linalg.norm(b)
     return float(np.dot(a, b) / denom) if denom else 0.0
 
@@ -22,7 +34,7 @@ class RoundComparator:
         self,
         resume_id: str,
         job_title: str,
-        db: Session,
+        db:        Session,
     ) -> dict:
         """
         Compare candidate vs round clearers + selected pool.
@@ -38,9 +50,8 @@ class RoundComparator:
         )
 
         results = {}
+        rounds  = ["round_1", "round_2", "round_3", "hr_round", "selected"]
 
-        # check each round
-        rounds = ["round_1", "round_2", "round_3", "hr_round", "selected"]
         for round_name in rounds:
             if round_name == "selected":
                 pool = db.query(SelectedPoolEntry).filter(
@@ -56,44 +67,48 @@ class RoundComparator:
 
             if not pool:
                 results[round_name] = {
-                    "pool_size":   0,
-                    "similarity":  None,
-                    "skill_gaps":  [],
-                    "message":     "No benchmark data yet for this round",
+                    "pool_size":  0,
+                    "similarity": None,
+                    "skill_gaps": [],
+                    "message":    "No benchmark data yet for this round",
                 }
                 continue
 
-            # similarity score
+            # similarity scores
             scores = []
-            pool_skills: dict[str, int] = {}
-
             for p in pool:
                 if p.embedding:
                     scores.append(_cosine(candidate_emb, p.embedding))
 
-                # collect pool skills
-                pool_resume = db.query(Resume).filter(
-                    Resume.id == p.resume_id
-                ).first()
-                if pool_resume and pool_resume.parsed_data:
-                    for skill in pool_resume.parsed_data.get("skills", []):
-                        k = skill.lower()
-                        pool_skills[k] = pool_skills.get(k, 0) + 1
+            # RISK 1 fix: filter out any NaN values before taking the mean
+            clean_scores   = [s for s in scores if not np.isnan(s)]
+            avg_similarity = round(float(np.mean(clean_scores)) * 100, 1) if clean_scores else None
 
-            avg_similarity = round(np.mean(scores) * 100, 1) if scores else None
+            # FIX BUG 1: batch-load all pool resumes in one query instead
+            # of one db.query per pool entry (was up to 150 DB round-trips)
+            pool_resume_ids = [str(p.resume_id) for p in pool if p.resume_id]
+            pool_resumes    = (
+                db.query(Resume).filter(Resume.id.in_(pool_resume_ids)).all()
+                if pool_resume_ids else []
+            )
 
-            # skill gaps
-            threshold   = len(pool) * 0.4
-            common      = {s for s, c in pool_skills.items() if c >= threshold}
-            skill_gaps  = sorted(common - candidate_skills)[:8]
-            strengths   = sorted(common & candidate_skills)[:5]
+            pool_skills: dict[str, int] = {}
+            for pr in pool_resumes:
+                for skill in (pr.parsed_data or {}).get("skills", []):
+                    k = skill.lower()
+                    pool_skills[k] = pool_skills.get(k, 0) + 1
+
+            threshold  = len(pool) * 0.4
+            common     = {s for s, c in pool_skills.items() if c >= threshold}
+            skill_gaps = sorted(common - candidate_skills)[:8]
+            strengths  = sorted(common & candidate_skills)[:5]
 
             results[round_name] = {
                 "pool_size":       len(pool),
                 "similarity":      avg_similarity,
                 "skill_gaps":      skill_gaps,
                 "strength_skills": strengths,
-                "message": self._advice(round_name, avg_similarity, skill_gaps),
+                "message":         self._advice(round_name, avg_similarity, skill_gaps),
             }
 
         return {

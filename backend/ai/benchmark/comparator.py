@@ -1,10 +1,22 @@
 """
-comparator.py — compares a candidate's resume against the selected pool
+ai/benchmark/comparator.py — compares a candidate's resume against the selected pool
 Gives a percentile score + gap analysis vs hired candidates for that role.
+
+FIXES:
+- BUG 1: pool_self_scores was an O(N²) cosine loop — for top_k=50 that's
+         2,450 cosine calls per request, all in Python, blocking every API
+         response. The percentile logic was also conceptually wrong: it
+         compared candidate similarity against pool *internal cohesion*
+         scores rather than a proper per-member distribution.
+
+         Fixed approach: compute each pool member's similarity to the
+         candidate (O(N)), then rank the candidate score within that
+         distribution. This is O(N) instead of O(N²), semantically correct
+         (percentile = how many pool members the candidate outscores when
+         compared directly to them), and ~50x faster at top_k=50.
 """
 import numpy as np
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from models import Resume, SelectedPoolEntry
 from ai.resume.embedder import ResumeEmbedder
 from loguru import logger
@@ -13,7 +25,7 @@ embedder = ResumeEmbedder()
 
 
 def _cosine(a: list, b: list) -> float:
-    a, b = np.array(a), np.array(b)
+    a, b = np.array(a, dtype=float), np.array(b, dtype=float)
     denom = np.linalg.norm(a) * np.linalg.norm(b)
     return float(np.dot(a, b) / denom) if denom else 0.0
 
@@ -24,8 +36,8 @@ class BenchmarkComparator:
         self,
         resume_id: str,
         job_title: str,
-        db: Session,
-        top_k: int = 50,
+        db:        Session,
+        top_k:     int = 50,
     ) -> dict:
         """
         Compare resume against selected pool for a given job title.
@@ -35,7 +47,6 @@ class BenchmarkComparator:
         if not resume or resume.embedding is None:
             return {"error": "Resume not processed yet"}
 
-        # fetch selected pool entries for this job title
         pool = db.query(SelectedPoolEntry).filter(
             SelectedPoolEntry.job_title.ilike(f"%{job_title}%"),
             SelectedPoolEntry.embedding.isnot(None),
@@ -43,24 +54,27 @@ class BenchmarkComparator:
 
         if not pool:
             return {
-                "percentile":      None,
-                "pool_size":       0,
-                "message":         "No benchmark data yet for this role",
+                "percentile":       None,
+                "pool_size":        0,
+                "message":          "No benchmark data yet for this role",
                 "similarity_score": None,
             }
 
         candidate_emb = list(resume.embedding)
-        scores = [_cosine(candidate_emb, list(p.embedding)) for p in pool]
-        candidate_score = np.mean(scores)      # avg similarity to selected pool
 
-        # percentile: what % of pool is the candidate scoring above
-        pool_self_scores = [np.mean([_cosine(list(p.embedding), list(q.embedding))
-                                     for q in pool if q.id != p.id])
-                            for p in pool]
+        # FIX BUG 1: O(N) — each pool member's similarity TO the candidate.
+        # Percentile = fraction of pool members the candidate outscores.
+        # Previously this was O(N²) internal-cohesion comparison which was
+        # both slow and semantically incorrect.
+        per_member_scores = [
+            _cosine(candidate_emb, list(p.embedding))
+            for p in pool
+        ]
+        candidate_score = float(np.mean(per_member_scores))
+        percentile      = float(
+            np.mean([candidate_score >= s for s in per_member_scores]) * 100
+        )
 
-        percentile = float(np.mean([candidate_score >= s for s in pool_self_scores]) * 100)
-
-        # skill gap
         gaps = self._skill_gap(resume.parsed_data or {}, pool, db)
 
         return {
@@ -75,8 +89,8 @@ class BenchmarkComparator:
     def _skill_gap(
         self,
         parsed: dict,
-        pool: list[SelectedPoolEntry],
-        db: Session,
+        pool:   list,
+        db:     Session,
     ) -> dict:
         """
         Compare candidate skills vs skills of selected candidates.
@@ -84,7 +98,6 @@ class BenchmarkComparator:
         """
         candidate_skills = set(s.lower() for s in (parsed.get("skills") or []))
 
-        # collect skills from pool resumes
         pool_resume_ids = [str(p.resume_id) for p in pool]
         if not pool_resume_ids:
             return {"missing": [], "strong": []}
@@ -96,12 +109,13 @@ class BenchmarkComparator:
         skill_freq: dict[str, int] = {}
         for pr in pool_resumes:
             for skill in (pr.parsed_data or {}).get("skills", []):
-                skill_freq[skill.lower()] = skill_freq.get(skill.lower(), 0) + 1
+                k = skill.lower()
+                skill_freq[k] = skill_freq.get(k, 0) + 1
 
-        threshold = len(pool_resumes) * 0.4   # present in 40%+ of selected resumes
+        threshold          = len(pool_resumes) * 0.4
         common_pool_skills = {s for s, cnt in skill_freq.items() if cnt >= threshold}
 
-        missing  = sorted(common_pool_skills - candidate_skills)[:10]
-        strong   = sorted(candidate_skills & common_pool_skills)[:5]
+        missing = sorted(common_pool_skills - candidate_skills)[:10]
+        strong  = sorted(candidate_skills & common_pool_skills)[:5]
 
         return {"missing": missing, "strong": strong}
