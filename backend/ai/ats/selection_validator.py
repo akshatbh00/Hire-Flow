@@ -1,6 +1,14 @@
 """
 section_validator.py — validates presence and quality of resume sections
 Each section gets a presence score + quality check.
+
+FIX BUG 2: _extract_section_text() now slices from the section header
+until the NEXT section header (not a fixed 800-char window). This stops
+the skills quality check from counting commas in experience bullets,
+which previously made it almost always return True (never firing warnings).
+
+Also fixed: skills quality check now counts commas OR line breaks
+(some resumes list skills one-per-line instead of comma-separated).
 """
 import re
 from dataclasses import dataclass
@@ -8,9 +16,9 @@ from dataclasses import dataclass
 
 SECTION_PATTERNS = {
     "contact": re.compile(
-        r"([\w.\-+]+@[\w.\-]+\.\w+)"           # email
-        r"|((\+91|0)?[6-9]\d{9})"               # Indian mobile
-        r"|(\+\d{1,3}[\s-]\d{3,})",             # international
+        r"([\w.\-+]+@[\w.\-]+\.\w+)"
+        r"|((\+91|0)?[6-9]\d{9})"
+        r"|(\+\d{1,3}[\s-]\d{3,})",
         re.IGNORECASE
     ),
     "summary": re.compile(
@@ -35,6 +43,18 @@ SECTION_PATTERNS = {
     ),
 }
 
+# Used to find the boundary of any section so we can stop extraction there
+_ANY_SECTION_BOUNDARY = re.compile(
+    r"\n\s*\b("
+    r"summary|objective|profile|about me|career goal|professional summary"
+    r"|experience|work history|employment|career|internship"
+    r"|education|academic|qualification|degree|university|college|school"
+    r"|skills|technologies|tech stack|tools|competencies|expertise|proficient"
+    r"|projects|portfolio|certifications|awards|languages|references"
+    r")\b",
+    re.IGNORECASE
+)
+
 # Points per section (total = 25)
 SECTION_WEIGHTS = {
     "contact":    6,
@@ -45,9 +65,10 @@ SECTION_WEIGHTS = {
 }
 
 QUALITY_CHECKS = {
-    "experience": lambda text: len(re.findall(r"\d+", text)) >= 3,   # has numbers/metrics
-    "skills":     lambda text: len(text.split(",")) >= 4,             # at least 4 skills listed
-    "summary":    lambda text: len(text.split()) >= 20,               # at least 20 words
+    "experience": lambda text: len(re.findall(r"\d+", text)) >= 3,
+    # FIX: count commas OR newlines — handles both inline and line-per-skill formats
+    "skills":     lambda text: len(re.findall(r",|\n", text)) >= 4,
+    "summary":    lambda text: len(text.split()) >= 20,
 }
 
 
@@ -62,10 +83,6 @@ class SectionResult:
 class SectionValidator:
 
     def validate(self, raw_text: str, parsed_data: dict) -> dict:
-        """
-        Validates all sections.
-        Returns section score (0–25) + per-section results.
-        """
         results  = {}
         total    = 0
         missing  = []
@@ -75,14 +92,12 @@ class SectionValidator:
             pattern = SECTION_PATTERNS.get(section)
             present = bool(pattern and pattern.search(raw_text))
 
-            # also check parsed_data as fallback
             if not present and parsed_data:
                 if section == "contact" and (parsed_data.get("email") or parsed_data.get("phone")):
                     present = True
                 elif parsed_data.get(section):
                     present = True
 
-            # quality check
             quality_ok = True
             suggestion = ""
             if present:
@@ -115,20 +130,30 @@ class SectionValidator:
         }
 
     def _extract_section_text(self, text: str, section: str) -> str:
-        """Rough extraction of a section's text for quality checks."""
+        """
+        FIX BUG 2: Extract from the matched section header until the next
+        section header — not a fixed 800-char window that bleeds into
+        adjacent sections and inflates quality check pass rates.
+        """
         pattern = SECTION_PATTERNS.get(section)
         if not pattern:
             return ""
+
         match = pattern.search(text)
         if not match:
             return ""
+
         start = match.start()
-        return text[start:start + 800]
+        # Find where the next section begins after our match
+        next_boundary = _ANY_SECTION_BOUNDARY.search(text, match.end() + 1)
+        end = next_boundary.start() if next_boundary else min(start + 1500, len(text))
+
+        return text[start:end]
 
     def _quality_suggestion(self, section: str) -> str:
         suggestions = {
             "experience": "Add numbers and metrics to experience bullets (e.g. 'increased sales by 30%')",
-            "skills":     "List at least 6–8 specific skills separated by commas",
+            "skills":     "List at least 6–8 specific skills separated by commas or one per line",
             "summary":    "Expand your summary to at least 3 sentences describing your value proposition",
         }
         return suggestions.get(section, f"Improve the quality of your {section} section")

@@ -1,6 +1,20 @@
 """
 ai/matching/job_matcher.py — semantic + hybrid + weighted matching
-Now uses HybridRetriever + Reranker for best accuracy.
+
+FIXES:
+- BUG 1: match_jobs_for_resume() now calls retrieve_jobs_by_embedding()
+         with the stored resume.embedding instead of re-embedding raw_text
+         on every request (was paying API cost on every match call).
+- BUG 2: rank_candidates reranker now uses text_key="raw_text" so the
+         LLM compares the JD against actual resume content — not the
+         candidate's name (was text_key="full_name").
+- GAP 1: required_exp now pulled from job.required_experience instead of
+         being hardcoded to 0. When 0, experience weight defaults to 0.8
+         (same as before) so existing behaviour is preserved for jobs
+         that don't specify a requirement.
+- GAP 3: over-fetch multiplier (limit * 3 / limit * 2) only applied when
+         rerank=True. When rerank=False the extras were fetched and
+         discarded with no benefit — now fetch exactly what's needed.
 """
 from sqlalchemy.orm import Session
 from models import Resume, Job
@@ -21,7 +35,7 @@ class JobMatcher:
         db:        Session,
         limit:     int  = 20,
         filters:   dict = None,
-        rerank:    bool = False,   # enable for premium users
+        rerank:    bool = False,
     ) -> list[dict]:
         """
         Resume → top N matching jobs.
@@ -31,18 +45,26 @@ class JobMatcher:
         if not resume or resume.embedding is None:
             return []
 
-        # use hybrid retrieval
-        results = hybrid.retrieve_jobs(
+        # GAP 3: only over-fetch when we will actually rerank the extras
+        fetch_limit = limit * 3 if rerank else limit
+
+        # FIX BUG 1: pass stored embedding — avoids re-embedding on every call
+        results = hybrid.retrieve_jobs_by_embedding(
+            query_embedding=list(resume.embedding),
             query_text=resume.raw_text[:3000] if resume.raw_text else "",
             db=db,
-            limit=limit * 3,    # over-fetch then trim after optional rerank
+            limit=fetch_limit,
             filters=filters or {},
         )
 
-        # optional LLM rerank for premium accuracy
         if rerank and results:
-            query = self._build_query_from_resume(resume)
-            results = reranker.rerank(query, results, text_key="title", top_k=15)
+            query   = self._build_query_from_resume(resume)
+            results = reranker.rerank(
+                query,
+                results,
+                text_key="description",  # rank by job content, not just title
+                top_k=15,
+            )
 
         return results[:limit]
 
@@ -62,24 +84,37 @@ class JobMatcher:
 
         jd_text = f"{job.title} {job.description or ''} {' '.join(job.requirements or [])}"
 
+        # GAP 3: only over-fetch when reranking
+        fetch_limit = limit * 2 if rerank else limit
+
         results = hybrid.retrieve_candidates(
             job_embedding=list(job.embedding),
             job_text=jd_text,
             db=db,
-            limit=limit * 2,
+            limit=fetch_limit,
         )
 
+        # FIX BUG 2: use resume text content, not the candidate's name
         if rerank and results:
-            results = reranker.rerank(jd_text, results, text_key="full_name", top_k=10)
+            results = reranker.rerank(
+                jd_text,
+                results,
+                text_key="raw_text",   # was "full_name" — now actual resume content
+                top_k=10,
+            )
 
-        # attach weighted scores
+        # FIX GAP 1: pull required_experience from job record
+        # Falls back to 0 (which keeps the 0.8 default exp_fit) for jobs
+        # that don't specify a requirement — safe for existing data
+        required_exp = getattr(job, "required_experience", None) or 0
+
         calculator = ScoreCalculator()
         for r in results:
             parsed   = r.get("parsed_data") or {}
             exp      = parsed.get("total_experience_years", 0)
             ats      = r.get("ats_score") or 50
             semantic = r.get("hybrid_score") or r.get("similarity", 0.5)
-            r["final_score"] = calculator.calculate(semantic, ats, 0, exp)
+            r["final_score"] = calculator.calculate(semantic, ats, required_exp, exp)
 
         results.sort(key=lambda x: x["final_score"], reverse=True)
         return results[:limit]
@@ -113,18 +148,3 @@ class ScoreCalculator:
             exp_fit        * self.WEIGHTS["experience"]
         )
         return round(score * 100, 1)
-"""
-
----
-
-**Batch 10 — Final Brain: Matching Worker + Alembic + Admin + .env.example**
-```
-backend/
-├── workers/
-│   └── matching_tasks.py     ← new
-├── api/
-│   └── admin/
-│       └── routes.py         ← new
-├── migrations/
-│   └── env.py                ← new (Alembic)
-└── .env.example              ← new"""

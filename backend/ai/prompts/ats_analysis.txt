@@ -1,3 +1,20 @@
-Rate this resume for ATS compatibility. Score each area and list the top issues.
-Focus on: keyword density, section completeness, formatting clarity, length.
-Return JSON only with fields: keyword_density (0-35), clarity_score (0-10), issues (list of strings).
+Rate this resume for ATS compatibility. Score each area and return the top issues.
+
+Scoring rules:
+- keyword_density (0-35): score based on presence of industry-relevant technical terms,
+  tools, and role-specific language. 30-35 = rich keyword coverage throughout all sections.
+  15-29 = moderate, some sections sparse. 0-14 = generic language, few specific terms.
+- clarity_score (0-10): score based on sentence structure, use of action verbs, absence of
+  filler phrases, and measurable achievements. 9-10 = crisp, metric-driven bullets.
+  6-8 = mostly clear but some vague language. 0-5 = passive voice, wall-of-text, no metrics.
+- issues: list the top 3-5 plain-English problems that hurt ATS ranking.
+  Be specific (e.g. "Experience section has no metrics or numbers" not "improve experience").
+
+Return ONLY raw valid JSON with no markdown, no explanation, no code fences:
+{
+  "keyword_density": <int 0-35>,
+  "clarity_score":   <int 0-10>,
+  "issues":          ["<specific issue>", ...]
+}
+
+Resume:

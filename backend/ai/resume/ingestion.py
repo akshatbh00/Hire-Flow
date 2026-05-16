@@ -1,6 +1,13 @@
 """
 ingestion.py — converts uploaded resume file → clean raw text
 Supports: PDF (PyMuPDF), DOCX (python-docx), TXT
+
+FIXES:
+- RISK 1: PDF header detection now uses bold OR font-size above the page
+          average as the signal. Previously only bold (flags & 16) was
+          checked, so templates that use a larger font for headers without
+          bold weight produced no ## markers — the chunker then received an
+          unsectioned blob and labelled everything "other".
 """
 import fitz  # PyMuPDF
 import docx
@@ -33,16 +40,36 @@ class ResumeIngester:
         pages = []
         for page in doc:
             blocks = page.get_text("dict")["blocks"]
+
+            # FIX RISK 1: compute average font size across all spans on this
+            # page so we can detect headers by relative size, not just bold.
+            all_sizes = [
+                s["size"]
+                for b in blocks if b["type"] == 0
+                for line in b["lines"]
+                for s in line["spans"]
+                if s["text"].strip()
+            ]
+            avg_size = (sum(all_sizes) / len(all_sizes)) if all_sizes else 11.0
+
             for b in blocks:
-                if b["type"] == 0:  # text block
-                    for line in b["lines"]:
-                        line_text = " ".join(s["text"] for s in line["spans"])
-                        # detect section headers by font size / boldness
-                        is_bold = any(s["flags"] & 16 for s in line["spans"])
-                        if is_bold and len(line_text.strip()) < 60:
-                            pages.append(f"\n## {line_text.strip()}")
-                        else:
-                            pages.append(line_text)
+                if b["type"] != 0:   # skip image blocks
+                    continue
+                for line in b["lines"]:
+                    line_text = " ".join(s["text"] for s in line["spans"])
+                    if not line_text.strip():
+                        continue
+
+                    is_bold      = any(s["flags"] & 16 for s in line["spans"])
+                    # FIX RISK 1: also treat lines whose font size is
+                    # noticeably larger than the page average as headers
+                    line_size    = max((s["size"] for s in line["spans"]), default=0)
+                    is_large     = line_size >= avg_size * 1.15
+
+                    if (is_bold or is_large) and len(line_text.strip()) < 60:
+                        pages.append(f"\n## {line_text.strip()}")
+                    else:
+                        pages.append(line_text)
         doc.close()
         return "\n".join(pages)
 
@@ -54,7 +81,7 @@ class ResumeIngester:
         for para in doc.paragraphs:
             if not para.text.strip():
                 continue
-            is_bold = any(run.bold for run in para.runs if run.text.strip())
+            is_bold    = any(run.bold for run in para.runs if run.text.strip())
             is_heading = para.style.name.startswith("Heading")
             if is_bold or is_heading:
                 lines.append(f"\n## {para.text.strip()}")
